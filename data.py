@@ -1,7 +1,8 @@
-import sys
 import os
+import sys
 import tempfile
 from subprocess import check_output
+
 
 def p3hash(data, mode):
     with tempfile.NamedTemporaryFile(mode='w+b', suffix=".bin", delete=False) as tf:

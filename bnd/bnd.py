@@ -1,16 +1,24 @@
-from const import BND_HEADER
-from data import *
-import zlib
 import os
+import zlib
 from pathlib import Path
+
+from const import BND_FILE_HEADER, BND_HEADER, GZIP_HEADER
+from data import *
 
 
 class cc:
+    """
+    TODO: What is this?
+    """
     def __init__(self, bnd_file):
         self.bnd_file = bnd_file
 
 
 class Entry:
+    """
+    Represents a BND file entry
+    TODO: BND file entries should also be BND
+    """
     def __init__(self, identifier, crc, aaddr, daddr, size, flevel, length, prlen, cbaddr, file_name, fdata):
         self.identifier = identifier
         self.crc = crc
@@ -26,6 +34,9 @@ class Entry:
 
 
 class BND:
+    """
+    Represents a BND file
+    """
     def __init__(self):
         self.version = 0
         self.info = 0
@@ -251,24 +262,21 @@ class BND:
             is_single_bnd_file = False
 
             # Checks if the header is a gzip header
-            if read_byte_array(data, 0x0, 0x3) == b'\x1f\x8b\x08':
+            if read_byte_array(data, 0x0, 0x3) == GZIP_HEADER:
 
                 # Reassign data with the decrompressed file
                 data = zlib.decompress(data, 15 + 32)
                 is_gzipped = True
 
                 # Check if the resulting file is a BND
-                if read_byte_array(data, 0x0, 0x4) != b'BND\x00':
+                if read_byte_array(data, 0x0, 0x4) != BND_HEADER:
 
                     # Add the simple BND header to the file
-                    bnd_header_file = open(resource_path("bnd_header"), "r+b")
-                    bnd_header = bnd_header_file.read()
-                    bnd_header_file.close()
-                    data = bnd_header + data
+                    data = BND_FILE_HEADER + data
                     is_single_bnd_file = True
 
             # If header is BND
-            if read_byte_array(data, 0x0, 0x4) == b'BND\x00':
+            if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
 
                 # Read all the header values
                 self.path = path
