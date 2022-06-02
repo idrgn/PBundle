@@ -1,3 +1,4 @@
+from const import BND_HEADER
 from data import *
 import zlib
 import os
@@ -368,75 +369,122 @@ class BND:
         return self.data
 
     def save_file(self, encrypted, backup):
+        """
+        Saves file
+        """
         if self.path != "":
             self.update_crc()
-            new_file = b'BND\x00'  # 0x0
-            new_file += self.version.to_bytes(4, "little", signed=False)  # 0x4
-            new_file += self.value1.to_bytes(4, "little", signed=False)  # 0x8
-            new_file += self.value2.to_bytes(4, "little", signed=False)  # 0xC
-            # new_file += b'\x00' * 4 * 2 # 0x8 - 0xC
-            new_file += (0x28 + self.empty_blocks*0x10 + len(self.data)
-                         * 0x10).to_bytes(4, "little", signed=False)  # 0x10
+
+            #  === SECTION: HEADER
+            file = BND_HEADER  # 0x0
+            file += self.version.to_bytes(4, "little", signed=False)  # 0x4
+            file += self.value1.to_bytes(4, "little", signed=False)  # 0x8
+            file += self.value2.to_bytes(4, "little", signed=False)  # 0xC
+            file += (0x28 + self.empty_blocks*0x10 + len(self.data) * 0x10).to_bytes(4, "little", signed=False)  # 0x10
+
             # files = address where files start
-            new_file += self.info.to_bytes(4, "little", signed=False)
-            new_file += b'\x00' * 4 * 2
+            file += self.info.to_bytes(4, "little", signed=False)
+            file += b'\x00' * 4 * 2
             # files = amount of files with value less than zero
-            new_file += self.count_files().to_bytes(4, "little", signed=False)
-            new_file += (len(self.data)+self.empty_blocks).to_bytes(4,
-                                                                    "little", signed=False)  # entries = amount of entries
-            new_file += b'\x00' * 0x10 * self.empty_blocks
+            file += self.count_files().to_bytes(4, "little", signed=False)
+            file += (len(self.data)+self.empty_blocks).to_bytes(4, "little", signed=False)  # entries = amount of entries
+            file += b'\x00' * 0x10 * self.empty_blocks
+
+            # === SECTION: CRC BLOCKS
+            # Creates a CRC list, containing all the CRC Blocks
             crc_list = []
-            for i in self.data:
-                crc_list.append([i.crc, i.crc.to_bytes(4, "little", signed=False), i.aaddr.to_bytes(
-                    4, "little", signed=False), i.daddr.to_bytes(4, "little", signed=False), i.size.to_bytes(4, "little", signed=False)])
+
+            # Iterate over every file
+            for entry in self.data:
+                crc_list.append([
+                    entry.crc, 
+                    entry.crc.to_bytes(4, "little", signed=False), 
+                    entry.aaddr.to_bytes(4, "little", signed=False), 
+                    entry.daddr.to_bytes(4, "little", signed=False), 
+                    entry.size.to_bytes(4, "little", signed=False)
+                    ])
+
+            # Sort
             crc_list.sort()
-            for i in crc_list:
-                new_file += i[1]
-                new_file += i[2]
-                new_file += i[3]
-                new_file += i[4]
+            
+            # Write in order to file
+            for item in crc_list:
+                file += item[1]
+                file += item[2]
+                file += item[3]
+                file += item[4]
+
+
+            # === SECTION: EXTRA DATA
             leng = 255
-            data_addr = 0
-            data_addr_list = []
-            for i in self.data:
+            data_address = 0
+            data_address_list = []
+            for entry in self.data:
                 index = 0
+
+                # Gets first crc of crc list
                 newcrc = crc_list[0][0]
-                while i.crc != newcrc and index+1 < len(crc_list):
+
+                # Finds CRC in CRC list
+                while entry.crc != newcrc and index+1 < len(crc_list):
                     index += 1
                     newcrc = crc_list[index][0]
-                addr = index * 0x10 + 0x28 + 0x10 * self.empty_blocks
-                data_addr_list.append([data_addr, addr])
-                data_addr += len(i.fdata)
-                if len(i.fdata) % 4 != 0:
-                    data_addr += 4 - (len(i.fdata) % 4)
-                new_file = replace_byte_array(
-                    new_file, addr + 0x4, len(new_file).to_bytes(4, "little", signed=False))
-                new_file += i.flevel.to_bytes(1, "little", signed=True)
-                new_file += leng.to_bytes(1, "little", signed=False)
-                leng = 7 + len(i.file_name) + 1
-                new_file += leng.to_bytes(1, "little", signed=False)
-                new_file += addr.to_bytes(4, "little", signed=False)
-                new_file += str.encode(i.file_name)
-                new_file += b'\x00'
-            while len(new_file) % 512 != 0:
-                new_file += b'\x00'
-            new_file = replace_byte_array(new_file, 0x14, len(
-                new_file).to_bytes(4, "little", signed=False))
-            base = len(new_file)
-            for i in range(len(data_addr_list)):
-                new_file = replace_byte_array(
-                    new_file, data_addr_list[i][1]+0x8, (base + data_addr_list[i][0]).to_bytes(4, "little", signed=False))
-            new_file = bytearray(new_file)
-            for i in range(len(data_addr_list)):
-                new_file += self.data[i].fdata
-                while len(new_file) % 4 != 0:
-                    new_file += b'\x00'
-            new_file = bytes(new_file)
+
+                # Calculates address of extra_data
+                address = index * 0x10 + 0x28 + 0x10 * self.empty_blocks
+
+                # Appends the data address to the list
+                data_address_list.append([data_address, address])
+                data_address += len(entry.fdata)
+
+                # Add base 4 to length
+                if len(entry.fdata) % 4 != 0:
+                    data_address += 4 - (len(entry.fdata) % 4)
+
+                file = replace_byte_array(file, address + 0x4, len(file).to_bytes(4, "little", signed=False))
+                file += entry.flevel.to_bytes(1, "little", signed=True)
+                file += leng.to_bytes(1, "little", signed=False)
+                leng = 7 + len(entry.file_name) + 1
+                file += leng.to_bytes(1, "little", signed=False)
+                file += address.to_bytes(4, "little", signed=False)
+                file += str.encode(entry.file_name)
+                file += b'\x00'
+        
+            # File must end in 512
+            while len(file) % 512 != 0:
+                file += b'\x00'
+            
+            file = replace_byte_array(file, 0x14, len(file).to_bytes(4, "little", signed=False))
+            base = len(file)
+
+
+            # Replace addresses?
+            for i in range(len(data_address_list)):
+                file = replace_byte_array(file, data_address_list[i][1]+0x8, (base + data_address_list[i][0]).to_bytes(4, "little", signed=False))
+
+
+            # Write the file data
+            file = bytearray(file)
+            # Iterate over all addresses
+            for i in range(len(data_address_list)):
+                # Also grabbing files from data by index
+                file += self.data[i].fdata
+                # Make it so next file always start on 0x4 multiple
+                while len(file) % 4 != 0:
+                    file += b'\x00'
+            # Convert back to bytes
+            file = bytes(file)
+
+            # Create backup
             if not backup:
                 if os.path.isfile(self.path + ".bak"):
                     os.remove(self.path + ".bak")
                 os.rename(self.path, self.path + ".bak")
+            
+            # Encrypt
             if encrypted:
-                new_file = p3hash(new_file, "e")
+                file = p3hash(file, "e")
+            
+            # Save file
             with open(self.path, "wb") as r:
-                r.write(new_file)
+                r.write(file)

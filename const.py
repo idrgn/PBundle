@@ -1,0 +1,1 @@
+BND_HEADER = b'BND\x00'
