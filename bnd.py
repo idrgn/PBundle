@@ -3,7 +3,8 @@ from classes import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 import window
 import tempfile
-import zlib, gzip
+import zlib
+import gzip
 import shutil
 import binascii
 import sys
@@ -11,12 +12,14 @@ import sip
 
 c = cc(BND())
 file_list = []
-current_properties = [0, ""] # depth, filename
+current_properties = [0, ""]  # depth, filename
+
 
 class About(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxQuestion))
+        self.setWindowIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_MessageBoxQuestion))
         self.setWindowTitle("About")
         self.setMinimumSize(QtCore.QSize(300, 300))
         self.setMaximumSize(QtCore.QSize(300, 300))
@@ -54,28 +57,35 @@ class About(QtWidgets.QWidget):
         self.label.setText("Patapon BND Editor")
         self.label_2.setText("Created by Madwig")
         self.label_3.setText("Changelog:")
-        self.textEdit.setPlainText("This is just a test release.\nNothing to see here yet...")
+        self.textEdit.setPlainText(
+            "This is just a test release.\nNothing to see here yet...")
         self.textEdit.setReadOnly(True)
         font = QtGui.QFont()
         font.setPointSize(10)
         self.textEdit.setFont(font)
 
+
 def display_error(text):
     msg = QtWidgets.QMessageBox()
-    msg.setWindowIcon(msg.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxCritical))
+    msg.setWindowIcon(msg.style().standardIcon(
+        QtWidgets.QStyle.SP_MessageBoxCritical))
     msg.setWindowTitle("Error")
     msg.setText(text)
     msg.exec_()
 
+
 class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
     def __init__(self):
-        QtGui.QFontDatabase.addApplicationFont(resource_path("res" + os.sep + "font.ttc"))
+        QtGui.QFontDatabase.addApplicationFont(
+            resource_path("res" + os.sep + "font.ttc"))
         super().__init__()
         self.setupUi(self)
 
-        shutil.rmtree(tempfile.gettempdir() + os.sep + "bnd_editor" + os.sep, ignore_errors=True)
+        shutil.rmtree(tempfile.gettempdir() + os.sep +
+                      "bnd_editor" + os.sep, ignore_errors=True)
 
-        self.setWindowIcon(QtGui.QIcon(resource_path("res" + os.sep + "icon.png")))
+        self.setWindowIcon(QtGui.QIcon(
+            resource_path("res" + os.sep + "icon.png")))
 
         self.treeWidget.selectionModel().selectionChanged.connect(self.get_selected_entry)
         self.treeWidget.itemChanged.connect(self.item_changed)
@@ -84,35 +94,43 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
         self.treeWidget.collapsed.connect(self.updateCollapsed)
 
         self.action_load.triggered.connect(self.select_bnd)
-        self.action_load.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogOpenButton))
+        self.action_load.setIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_DialogOpenButton))
         self.action_refresh.triggered.connect(self.reload_bnd)
-        self.action_refresh.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
+        self.action_refresh.setIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_BrowserReload))
         self.action_save.triggered.connect(self.save_file)
-        self.action_save.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton))
+        self.action_save.setIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_DialogSaveButton))
         self.action_save_as.triggered.connect(self.save_file)
-        self.action_save_as.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DriveFDIcon))
+        self.action_save_as.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.SP_DriveFDIcon))
         self.action_exit.triggered.connect(sys.exit)
-        self.action_exit.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserStop))
+        self.action_exit.setIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_BrowserStop))
 
-        self.action_about.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation))
+        self.action_about.setIcon(self.style().standardIcon(
+            QtWidgets.QStyle.SP_MessageBoxInformation))
         self.action_about.triggered.connect(self.loadInfo)
-        self.action_disable_filesystem_and_save.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxWarning))
-        self.action_overwrite_all_filenames.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_FileDialogDetailedView))
+        self.action_disable_filesystem_and_save.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxWarning))
+        self.action_overwrite_all_filenames.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.SP_FileDialogDetailedView))
 
         self.pb_delete_file.clicked.connect(self.delete_file)
         self.pb_add_file.clicked.connect(self.add_files)
         self.pb_add_folder.clicked.connect(self.add_folder)
         self.pb_replace_file.clicked.connect(self.replace_file)
-        self.pb_moveup.clicked.connect(lambda:self.move_file(-1))
-        self.pb_movedown.clicked.connect(lambda:self.move_file(1))
+        self.pb_moveup.clicked.connect(lambda: self.move_file(-1))
+        self.pb_movedown.clicked.connect(lambda: self.move_file(1))
         self.pb_extract_file.clicked.connect(self.extract_file)
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
-        
-        self.le_crc.selectionChanged.connect(lambda:self.le_crc.deselect())  
+
+        self.le_crc.selectionChanged.connect(lambda: self.le_crc.deselect())
         self.le_crc.setText("")
         self.le_crc.setToolTip("None")
-        self.le_size.selectionChanged.connect(lambda:self.le_size.deselect())
+        self.le_size.selectionChanged.connect(lambda: self.le_size.deselect())
         self.le_size.setText("")
         self.le_size.setToolTip("None")
 
@@ -142,23 +160,28 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
 
     def load_bnd_file(self, file):
         print(file)
-        result, arg1, arg2 = c.bnd_file.read_from_file(file, self.check_encryption_decryption.isChecked())
+        result, arg1, arg2 = c.bnd_file.read_from_file(
+            file, self.check_encryption_decryption.isChecked())
         if result == 0:
             file_list.clear()
-            file_list.append([c.bnd_file, -1, c.bnd_file.path, c.bnd_file.path, arg1, arg2])
+            file_list.append([c.bnd_file, -1, c.bnd_file.path,
+                             c.bnd_file.path, arg1, arg2])
             current_properties[0] = 0
             # c.bnd_file.print_all_entries()
-            self.treeWidget.setHeaderLabel(file_list[0][3].split("/")[-1] + "/")
+            self.treeWidget.setHeaderLabel(
+                file_list[0][3].split("/")[-1] + "/")
             self.load_entries(c.bnd_file)
         else:
             display_error("Not a valid BND file.")
 
     def updateCollapsed(self, item):
-        self.treeWidget.itemFromIndex(item).setIcon(0, self.style().standardIcon(QtWidgets.QStyle.SP_DirIcon))
+        self.treeWidget.itemFromIndex(item).setIcon(
+            0, self.style().standardIcon(QtWidgets.QStyle.SP_DirIcon))
 
     def updateExpanded(self, item):
-        self.treeWidget.itemFromIndex(item).setIcon(0, self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon))
-      
+        self.treeWidget.itemFromIndex(item).setIcon(
+            0, self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon))
+
     def loadInfo(self):
         self.aboutw = About()
         self.aboutw.show()
@@ -191,7 +214,8 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
                 newitem = self.create_entry(result)
                 sip.delete(ilist[index])
                 if c.bnd_file.data[result].flevel == -1:
-                    self.treeWidget.insertTopLevelItem(pos + displacement, newitem)
+                    self.treeWidget.insertTopLevelItem(
+                        pos + displacement, newitem)
                 else:
                     ilist[parent].insertChild(result-parent-1, newitem)
                 self.update_entry_ids()
@@ -209,11 +233,11 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
             if self.check_reload_on_save.isChecked():
                 self.load_entries(c.bnd_file)
                 return
-            for file in selection:       
+            for file in selection:
                 sip.delete(file)
             self.update_entry_ids()
             # self.load_entries(c.bnd_file)
-            
+
     def add_files(self):
         input_files = QtWidgets.QFileDialog.getOpenFileNames(self, "Open")
         if input_files:
@@ -221,7 +245,8 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
                 if input_files[0][0] != "":
                     for path in input_files[0]:
                         # print(path)
-                        insertion = c.bnd_file.add_entry(self.get_selected_entry(), path)
+                        insertion = c.bnd_file.add_entry(
+                            self.get_selected_entry(), path)
                         if self.check_reload_on_save.isChecked():
                             self.load_entries(c.bnd_file)
                             return
@@ -253,16 +278,20 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
             fname = file_list[-1][2]
             gzipd = file_list[-1][4]
             singl = file_list[-1][5]
-            c.bnd_file.save_file(self.check_encryption_decryption.isChecked(), self.check_extended_backup_files.isChecked())
+            c.bnd_file.save_file(self.check_encryption_decryption.isChecked(
+            ), self.check_extended_backup_files.isChecked())
             if singl or gzipd:
                 f = open(fname, "r+b")
                 data = f.read()
-                if singl: data = data[512:]
-                if gzipd: data = gzip.compress(data)
+                if singl:
+                    data = data[512:]
+                if gzipd:
+                    data = gzip.compress(data)
                 with open(c.bnd_file.path, "wb") as r:
                     r.write(data)
         else:
-            c.bnd_file.save_file(self.check_encryption_decryption.isChecked(), self.check_extended_backup_files.isChecked())
+            c.bnd_file.save_file(self.check_encryption_decryption.isChecked(
+            ), self.check_extended_backup_files.isChecked())
             file_list[-1][0] = c.bnd_file
             index = file_list[-1][1]
             fname = file_list[-1][2]
@@ -271,11 +300,14 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
             for i in reversed(file_list[:-1]):
                 f = open(fname, "r+b")
                 data = f.read()
-                if singl: data = data[512:]
-                if gzipd: data = gzip.compress(data)
+                if singl:
+                    data = data[512:]
+                if gzipd:
+                    data = gzip.compress(data)
                 c.bnd_file = i[0]
                 c.bnd_file.replace_entry_send_data(index, data)
-                c.bnd_file.save_file(self.check_encryption_decryption.isChecked(), self.check_extended_backup_files.isChecked())
+                c.bnd_file.save_file(self.check_encryption_decryption.isChecked(
+                ), self.check_extended_backup_files.isChecked())
                 i[0] = c.bnd_file
                 index = i[1]
                 fname = i[2]
@@ -289,18 +321,21 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
             if c.bnd_file.data[index].flevel < 0:
                 data = c.bnd_file.data[index].fdata
                 name = c.bnd_file.data[index].fname
-                fcrc = str(zlib.crc32(str.encode(name + "/" + c.bnd_file.get_path(index))))
+                fcrc = str(zlib.crc32(str.encode(
+                    name + "/" + c.bnd_file.get_path(index))))
                 temp = tempfile.gettempdir() + os.sep + "bnd_editor" + os.sep
                 path = temp + fcrc + ".BND"
                 gzpd = False
                 sfil = False
                 if len(data) > 0x28:
-                    if read_byte_array(data, 0x0, 0x3) == b'\x1f\x8b\x08': # if gzipped and not bnd, add a basic bnd header and ALSO change another flag
+                    # if gzipped and not bnd, add a basic bnd header and ALSO change another flag
+                    if read_byte_array(data, 0x0, 0x3) == b'\x1f\x8b\x08':
                         data = zlib.decompress(data, 15 + 32)
                         gzpd = True
                         if read_byte_array(data, 0x0, 0x4) != b'BND\x00':
                             sfil = True
-                            x = open(resource_path("res" + os.sep + "gzipped_file.bin"), "r+b")
+                            x = open(resource_path(
+                                "res" + os.sep + "bnd_header"), "r+b")
                             ndata = x.read()
                             data = ndata + data
                     if read_byte_array(data, 0x0, 0x4) == b'BND\x00':
@@ -311,8 +346,10 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
                         with open(path, "wb") as r:
                             r.write(data)
                         bndf = BND()
-                        bndf.read_from_file(path, self.check_encryption_decryption.isChecked())
-                        file_list.append([bndf, index, bndf.path, c.bnd_file.get_path(index), gzpd, sfil])
+                        bndf.read_from_file(
+                            path, self.check_encryption_decryption.isChecked())
+                        file_list.append(
+                            [bndf, index, bndf.path, c.bnd_file.get_path(index), gzpd, sfil])
                         current_properties[0] += 1
                         c.bnd_file = bndf
                         self.load_entries(c.bnd_file)
@@ -325,23 +362,28 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
                     sel.setExpanded(True)
 
     def back_local_bnd(self):
-        if len(file_list) <= 1 or current_properties[0] == 0: return
+        if len(file_list) <= 1 or current_properties[0] == 0:
+            return
         os.remove(file_list[-1][2])
         file_list.pop()
         c.bnd_file = file_list[-1][0]
         current_properties[0] -= 1
         self.load_entries(c.bnd_file)
         self.update_filename()
-        if current_properties[0] == 0: shutil.rmtree(tempfile.gettempdir() + os.sep + "bnd_editor" + os.sep, ignore_errors=True)
+        if current_properties[0] == 0:
+            shutil.rmtree(tempfile.gettempdir() + os.sep +
+                          "bnd_editor" + os.sep, ignore_errors=True)
         self.update_buttons()
 
-    def add_folder(self): # fix
-        text, selection = QtWidgets.QInputDialog.getText(self, 'New folder', 'Enter folder name:')
+    def add_folder(self):  # fix
+        text, selection = QtWidgets.QInputDialog.getText(
+            self, 'New folder', 'Enter folder name:')
         if selection:
             if text != "":
                 if not text.endswith("/"):
                     text = text + "/"
-                insertion = c.bnd_file.add_folder(self.get_selected_entry(), str(text))
+                insertion = c.bnd_file.add_folder(
+                    self.get_selected_entry(), str(text))
                 if self.check_reload_on_save.isChecked():
                     self.load_entries(c.bnd_file)
                     return
@@ -407,8 +449,8 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
         self.pb_moveup.setEnabled(True)
 
     def search_sub(self, position, current_type, entry):
-        next_folder_type = current_type + 1 # the id of next folder
-        current_file_type = -1 - current_type # the id of this folder's files
+        next_folder_type = current_type + 1  # the id of next folder
+        current_file_type = -1 - current_type  # the id of this folder's files
         index = 1
         if index+position > len(c.bnd_file.data)-1:
             return index
@@ -416,7 +458,9 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
         while next_entry_type == next_folder_type or next_entry_type == current_file_type and index < len(c.bnd_file.data):
             if next_folder_type == next_entry_type:
                 newentry = self.create_entry(position+index)
-                index = index + self.search_sub(position+index, next_entry_type, newentry) - 1
+                index = index + \
+                    self.search_sub(
+                        position+index, next_entry_type, newentry) - 1
                 entry.addChild(newentry)
             if current_file_type == next_entry_type:
                 newentry = self.create_entry(position+index)
@@ -435,13 +479,15 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
             string = string.replace("\\", os.sep)
         self.treeWidget.setHeaderLabel(string)
 
-    def reload_bnd(self): # fix
+    def reload_bnd(self):  # fix
         if c.bnd_file.path != "":
             c.bnd_file = file_list[0][0]
-            result, arg1, arg2 = c.bnd_file.read_from_file(c.bnd_file.path, self.check_encryption_decryption.isChecked())
+            result, arg1, arg2 = c.bnd_file.read_from_file(
+                c.bnd_file.path, self.check_encryption_decryption.isChecked())
             if result == 0:
                 file_list.clear()
-                file_list.append([c.bnd_file, -1, c.bnd_file.path, c.bnd_file.path, arg1, arg2])
+                file_list.append(
+                    [c.bnd_file, -1, c.bnd_file.path, c.bnd_file.path, arg1, arg2])
                 current_properties[0] = 0
                 ntitle = file_list[0][3].split("/")[-1] + os.sep
                 ntitle = ntitle.replace("/", os.sep)
@@ -467,7 +513,8 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
                     path = file_list[0][3].split("/")[-1] + "/"
                     for i in range(len(file_list[:1])):
                         path += file_list[i][0].get_path(file_list[i+1][1])
-                    path = os.path.dirname((os.path.abspath(file_list[0][0].path))) + os.sep + "extracted" + os.sep + path + os.sep
+                    path = os.path.dirname((os.path.abspath(
+                        file_list[0][0].path))) + os.sep + "extracted" + os.sep + path + os.sep
                 c.bnd_file.extract_handler(index, path)
 
     def replace_file(self):
@@ -475,25 +522,32 @@ class Application(QtWidgets.QMainWindow, window.Ui_MainWindow):
         if selection:
             for i in range(len(selection)):
                 if c.bnd_file.data[selection[i].data(0, QtCore.Qt.UserRole)].flevel < 0:
-                    input_file = QtWidgets.QFileDialog.getOpenFileName(self, "Open file to replace file " + str(i) + ": " + c.bnd_file.data[selection[i].data(0, QtCore.Qt.UserRole)].fname)
+                    input_file = QtWidgets.QFileDialog.getOpenFileName(self, "Open file to replace file " + str(
+                        i) + ": " + c.bnd_file.data[selection[i].data(0, QtCore.Qt.UserRole)].fname)
                     if input_file:
                         if input_file[0] != "":
-                            c.bnd_file.replace_entry_data(selection[i].data(0, QtCore.Qt.UserRole), input_file[0])
+                            c.bnd_file.replace_entry_data(selection[i].data(
+                                0, QtCore.Qt.UserRole), input_file[0])
                             self.get_data()
 
     def get_data(self):
         index = self.get_selected_entry()
         if index != -1 and index < len(c.bnd_file.data):
             # print(c.bnd_file.get_path(index))
-            self.le_crc.setText((str(hex(c.bnd_file.data[index].crc))).upper()[2:] + " ")
+            self.le_crc.setText(
+                (str(hex(c.bnd_file.data[index].crc))).upper()[2:] + " ")
             self.le_crc.setToolTip("File: " + c.bnd_file.get_path(index))
             self.le_size.setText(sizeof_fmt(c.bnd_file.data[index].size) + " ")
-            self.le_size.setToolTip("Size: " + str(c.bnd_file.data[index].size) + " bytes")
+            self.le_size.setToolTip(
+                "Size: " + str(c.bnd_file.data[index].size) + " bytes")
             self.te_preview.setText("")
             if len(c.bnd_file.data[index].fdata) > 0:
-                string = str(binascii.hexlify(c.bnd_file.data[index].fdata[0:0x70]))[2:-1]
-                string = ' '.join(string[i:i+2] for i in range(0, len(string), 2))
-                string = '\n'.join(string[i:i+24] for i in range(0, len(string), 24))
+                string = str(binascii.hexlify(
+                    c.bnd_file.data[index].fdata[0:0x70]))[2:-1]
+                string = ' '.join(string[i:i+2]
+                                  for i in range(0, len(string), 2))
+                string = '\n'.join(string[i:i+24]
+                                   for i in range(0, len(string), 24))
                 lines = string.splitlines()
                 self.te_preview.append("\n")
                 counter = 0
