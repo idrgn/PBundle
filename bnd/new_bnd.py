@@ -3,13 +3,52 @@ from const import BND_FILE_HEADER, BND_HEADER, GZIP_HEADER, EMPTY_BLOCK
 from data import p3hash, read_byte_array, read_integer, read_string, to_signed
 
 
-class Container:
-    def __init__(self, name: str = "root/", depth: int = 0, encrypted: bool = False, parent: object = None):
+class NBND:
+    """
+    BND Object
+    """
+    def __init__(self, data: bytes = [], name: str = "root/", depth: int = 0, encrypted: bool = False, is_folder = False):
         self.file_list = []
         self.name = name
         self.depth = depth
         self.encrypted = encrypted
-        self.parent = parent
+        self.parent = None
+
+        # Is folder
+        self.is_folder = is_folder
+        if self.is_folder: return
+
+        # Gzipped or single BND
+        self.is_gzipped = False
+        self.is_single_bnd_file = False
+
+        # Default values
+        self.add_default_values()
+
+        # Ignore DATAMS.HED
+        if name == "datams.hed":
+            self.is_raw = True
+            self.data = data
+        else:
+            self.is_raw = False
+            self.read_from_file(data)
+        
+        # Print data
+        # self.print_data()
+
+    def add_default_values(self):
+        """
+        Set default values for a BND file
+        """
+        self.is_raw = False
+        self.raw_data = None
+        self.version = None
+        self.value1 = None
+        self.value2 = None
+        self.info = None
+        self.file = None
+        self.entries = None
+        self.empty_blocks = None
 
     def print_data(self):
         print("File: " + self.name)
@@ -53,40 +92,9 @@ class Container:
     def set_parent(self, parent: object):
         self.parent = parent
 
-class NBND(Container):
-    """
-    BND Object
-    """
-    def __init__(self, data: bytes, name: str = "root/", depth: int = 0, encrypted: bool = False, parent: object = None):
-        super().__init__(name, depth, encrypted, parent)
-
-        # Types
-        self.is_folder = False
-        self.is_gzipped = False
-        self.is_single_bnd_file = False
-
-        self.add_default_values()
-        if name == "datams.hed":
-            self.is_raw = True
-            self.data = data
-        else:
-            self.read_from_file(data)
-        
-        # self.print_data()
-
-    def add_default_values(self):
-        self.is_raw = False
-        self.raw_data = None
-        self.version = None
-        self.value1 = None
-        self.value2 = None
-        self.info = None
-        self.file = None
-        self.entries = None
-
     def read_from_file(self, data):
         """
-        Reads data from a .bnd file
+        Reads data from a .BND file
         """
         # Decrypt if needed
         if self.encrypted:
@@ -115,20 +123,19 @@ class NBND(Container):
             self.value2 = read_integer(data, 0x0C, 0x1)
             self.info = read_integer(data, 0x10, 0x4)
             self.file = read_integer(data, 0x14, 0x4)
-            self.entries = read_integer(data, 0x24, 0x4)
-            self.data = []
 
             # Checks all the empty blocks
-            check = EMPTY_BLOCK
             empty_blocks = 0
 
+            check = EMPTY_BLOCK
+
             while check == EMPTY_BLOCK:
-                check = read_byte_array(
-                    data, 0x28 + empty_blocks * 0x10, 0x10)
+                check = read_byte_array(data, 0x28 + empty_blocks * 0x10, 0x10)
                 if check == EMPTY_BLOCK:
                     empty_blocks += 1
 
-            self.entries -= empty_blocks
+            entries = read_integer(data, 0x24, 0x4) - empty_blocks
+
             self.empty_blocks = empty_blocks
 
             # Start reading the data
@@ -137,21 +144,18 @@ class NBND(Container):
             # How the file level structure will work
             # # If it increases, create a new folder and continue the loop in there
             # # If it decreases
-            curent_file_level = -1
-            current_folder_level = 0
-            current_folder_object = self
+            current_level = 0
+            current_object = self
 
-            for i in range(self.entries):
+            for i in range(entries):
 
                 crc_pointer = read_integer(data, self.info + offset + 0x3, 0x4)
 
                 if crc_pointer != 0:
-
                     # Reads CRC block containing data
                     crc_block = read_byte_array(data, crc_pointer, 0x10)
 
                     # Reading data from the CRC block
-                    file_crc = read_integer(crc_block, 0x0, 0x4) # CRC
                     pointer_attributes = read_integer(crc_block, 0x4, 0x4) # Address to extra attributes
                     pointer_data = read_integer(crc_block, 0x8, 0x4) # Address to the start of the data
                     file_size = read_integer(crc_block, 0xC, 0x4)  # Size of the data
@@ -162,12 +166,6 @@ class NBND(Container):
 
                     # Level of the current file (inside folders)
                     file_level = to_signed(read_integer(data, pointer_attributes, 0x1), 1)
-                    # Length of the previous data block?
-                    length_previous_data_block = read_integer(data, pointer_attributes + 0x1, 0x1)
-                    # Length of the current data block?
-                    length_current_data_block = to_signed(read_integer(data, pointer_attributes + 0x2, 0x1), 1)
-                    # Pointer to CRC Block
-                    pointer_crc_block = read_integer(data, pointer_attributes + 0x3, 0x4)
                     # Filename
                     file_name = read_string(data, pointer_attributes + 0x7)
 
@@ -178,8 +176,9 @@ class NBND(Container):
                     # EXAMPLE:
                     # - A file in the root directory will be level -1
                     # - A file in 2 folders will be -3
+
                     is_change_a_folder = False
-                    processed_level = current_folder_level
+                    processed_level = current_level
 
                     if (file_level < 0):
                         processed_level = abs(file_level) - 1
@@ -187,52 +186,46 @@ class NBND(Container):
                         processed_level = file_level
                         is_change_a_folder = True
 
-                    # If unequal, do action
-                    if processed_level != current_folder_level or is_change_a_folder:
+                    # If unequal or new folder, do action
+                    if processed_level != current_level or is_change_a_folder:
 
                         # If level is higher than current one, subfolder must be created
-                        if processed_level > current_folder_level:
+                        if processed_level > current_level:
                             # If level is root, add to root
-                            new_folder = Folder(file_name, processed_level, self.encrypted)
-                            current_folder_object.add_to_file_list(new_folder)
-                            current_folder_object = new_folder
+                            new_folder = NBND(None, file_name, processed_level, self.encrypted, True)
+                            current_object.add_to_file_list(new_folder)
+                            current_object = new_folder
 
                         # If level is lower than current one, subfolder must be exited
-                        elif processed_level < current_folder_level:
+                        elif processed_level < current_level:
                             # Execute difference amount of times in case there is a jump
-                            difference = current_folder_level - processed_level
+                            difference = current_level - processed_level
                             for _ in range(difference):
                                 # Get parent
-                                current_folder_object = current_folder_object.get_parent()
+                                current_object = current_object.get_parent()
 
 
                         # If change is a folder, and it is in the same level as the old one
-                        if (is_change_a_folder and processed_level <= current_folder_level):
-                            print("New folder in root:" + file_name)
+                        if (is_change_a_folder and processed_level <= current_level):
                             # Back to parent
-                            current_folder_object = current_folder_object.get_parent()
+                            current_object = current_object.get_parent()
                             # Create new folder
-                            new_folder = Folder(file_name, processed_level, self.encrypted)
+                            new_folder = NBND(None, file_name, processed_level, self.encrypted, True)
                             # Set to current object
-                            current_folder_object.add_to_file_list(new_folder)
-                            current_folder_object = new_folder
+                            current_object.add_to_file_list(new_folder)
+                            current_object = new_folder
 
-                        current_folder_level = processed_level
+                        # Set current level
+                        current_level = processed_level
 
                     # Add file
                     if (file_level < 0):
-                        current_folder_object.add_to_file_list(NBND(file_data, file_name, current_folder_object.depth, self.encrypted))
+                        current_object.add_to_file_list(NBND(file_data, file_name, current_object.depth, self.encrypted))
 
                     # Add offset
                     offset += 7 + len(file_name) + 1
+        
+        # If not BND, raw
         else:
             self.is_raw = True
             self.raw_data = data
-
-class Folder(Container):
-    """
-    Folder object inside a BND
-    """
-    def __init__(self, name: str, depth: int, encrypted = False, parent: object = None):
-        super().__init__(name, depth, encrypted, parent)
-        self.is_folder = True
