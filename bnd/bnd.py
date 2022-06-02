@@ -17,6 +17,7 @@ class BND:
 
         # Is folder
         self.is_folder = is_folder
+        self.is_raw = False
         if self.is_folder: return
 
         # Gzipped or single BND
@@ -31,7 +32,6 @@ class BND:
             self.is_raw = True
             self.data = data
         else:
-            self.is_raw = False
             self.read_from_file(data)
         
         # Print data
@@ -92,6 +92,10 @@ class BND:
 
     def set_parent(self, parent: object):
         self.parent = parent
+
+
+    def has_parent(self):
+        return self.parent != None
 
     def read_from_file(self, data):
         """

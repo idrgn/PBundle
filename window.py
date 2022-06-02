@@ -10,22 +10,15 @@ from interface import main_window
 from interface.tree_bundle_item import QTreeWidgetBundleItem
 
 
-def display_error(text):
-    msg = QtWidgets.QMessageBox()
-    msg.setWindowIcon(msg.style().standardIcon(
-        QtWidgets.QStyle.SP_MessageBoxCritical))
-    msg.setWindowTitle("Error")
-    msg.setText(text)
-    msg.exec_()
-
-
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def __init__(self):
         QtGui.QFontDatabase.addApplicationFont(
             resource_path("res" + os.sep + "font.ttc"))
         super().__init__()
         
+        # Init
         self.setupUi(self)
+        self.set_connections()
 
         # Delete temp
         shutil.rmtree(tempfile.gettempdir() + os.sep +"bnd_editor" + os.sep, ignore_errors=True)
@@ -38,6 +31,57 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 file = sys.argv[1]
                 file = file.replace("\\", "/")
                 self.load_bnd_file(file)
+
+    def set_connections(self):
+        self.pb_open.clicked.connect(self.open_local_bnd)
+        self.pb_back.clicked.connect(self.back_local_bnd)
+        self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
+
+    def open_local_bnd(self):
+        selected_item = self.get_selected_item()
+        if selected_item:
+            if not selected_item.bundleItem.is_raw and not selected_item.bundleItem.is_folder:
+                self.bnd = selected_item.bundleItem
+                self.reload_entries()
+
+    def back_local_bnd(self):
+        """
+        Returns to parent BND
+        """
+        self.bnd = self.bnd.get_parent()
+        while self.bnd.is_folder:
+            self.bnd = self.bnd.get_parent()
+        self.reload_entries()
+
+    def selection_changed(self):
+        """
+        Executed when the table selection is changed
+        Sets the button states based on current item
+        """
+        selected_item = self.get_selected_item()
+        if selected_item:
+            if not selected_item.bundleItem.is_raw and not selected_item.bundleItem.is_folder:
+                self.pb_open.setEnabled(True)
+            else:
+                self.pb_open.setEnabled(False)
+        else:
+            self.pb_open.setEnabled(False)
+
+    def get_selected_item(self):
+        """
+        Gets first selected item
+        """
+        selection = self.treeWidget.selectedItems()
+        if selection:
+            return selection[0]
+        else:
+            return None
+
+    def get_selected_items(self):
+        """
+        Gets multiple selected items
+        """
+        return self.treeWidget.selectedItems()
 
     def select_bnd(self):
         """
@@ -84,8 +128,22 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def reload_entries(self):
         """
         Reload all entries from BND
+        Enables all the buttons
         """
+        # Clean tree widget
         self.treeWidget.clear()
+
+        # Add entries to tree widget
         for entry in self.bnd.file_list:
             widget = QTreeWidgetBundleItem(entry, self.style())
             self.treeWidget.addTopLevelItem(widget)
+        
+        # Enable buttons
+        self.pb_back.setEnabled(self.bnd.has_parent())
+        self.pb_add_file.setEnabled(True)
+        self.pb_add_folder.setEnabled(True)
+        self.pb_delete_file.setEnabled(True)
+        self.pb_extract_file.setEnabled(True)
+        self.pb_replace_file.setEnabled(True)
+        self.pb_movedown.setEnabled(True)
+        self.pb_moveup.setEnabled(True)
