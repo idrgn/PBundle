@@ -29,7 +29,7 @@ class Entry:
         self.length = length
         self.prlen = prlen
         self.cbaddr = cbaddr
-        self.file_name = file_name
+        self.fname = file_name
         self.fdata = fdata
 
 
@@ -172,28 +172,28 @@ class BND:
 
     def get_path(self, entry):
         path = []
-        filename = self.data[entry].file_name
+        filename = self.data[entry].fname
         current = self.data[entry].flevel
         if current < 0:
             highest = abs(current)
         else:
             highest = current
         if current == -1 or current == 1:
-            return self.data[entry].file_name
+            return self.data[entry].fname
         else:
             target = 1
         # print("Initialized, current is: ", current, "and highest is: ", highest, "target is: ", target)
         while current != target:
             # print("Current: ", current)
             if current > 0 and current < highest:
-                path.insert(0, self.data[entry].file_name)
+                path.insert(0, self.data[entry].fname)
                 highest = current
                 # print("New high: ", highest)
             entry -= 1
             if entry > len(self.data) - 1 or entry < 0:
                 return "None"
             current = self.data[entry].flevel
-        path.insert(0, self.data[entry].file_name)
+        path.insert(0, self.data[entry].fname)
         return "".join(path) + filename
 
     def delete_entry(self, entry):
@@ -221,16 +221,16 @@ class BND:
         filename = ""
         for i in self.data:
             if i.flevel < 0:
-                filename = "".join(path)+i.file_name
+                filename = "".join(path)+i.fname
             else:
                 if i.flevel > current_depth:
-                    path.append(i.file_name)
+                    path.append(i.fname)
                 else:
                     if (current_depth-i.flevel) != 0:
                         path = path[:-(current_depth-i.flevel)]
                         current_depth = i.flevel
                 if i.flevel == current_depth:
-                    path[i.flevel-1] = i.file_name
+                    path[i.flevel-1] = i.fname
                 current_depth = i.flevel
                 filename = "".join(path)
             i.crc = zlib.crc32(str.encode(filename))
@@ -371,7 +371,7 @@ class BND:
             print("Entry length: ", i.length)
             print("Previous length: ", i.prlen)
             print("CRC addr: ", hex(i.cbaddr))
-            print("Filename: ", i.file_name)
+            print("Filename: ", i.fname)
 
     def return_all_entries(self):
         return self.data
@@ -452,10 +452,10 @@ class BND:
                 file = replace_byte_array(file, address + 0x4, len(file).to_bytes(4, "little", signed=False))
                 file += entry.flevel.to_bytes(1, "little", signed=True)
                 file += leng.to_bytes(1, "little", signed=False)
-                leng = 7 + len(entry.file_name) + 1
+                leng = 7 + len(entry.fname) + 1
                 file += leng.to_bytes(1, "little", signed=False)
                 file += address.to_bytes(4, "little", signed=False)
-                file += str.encode(entry.file_name)
+                file += str.encode(entry.fname)
                 file += b'\x00'
         
             # File must end in 512
