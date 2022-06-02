@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 import zlib
+from bnd.new_bnd import NBND
 
 import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -140,7 +141,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             if sys.argv[1]:
                 file = sys.argv[1]
                 file = file.replace("\\", "/")
-                self.load_bnd_file(file)
+                self.load_new_bnd_file(file)
 
     def dragEnterEvent(self, event):
         event.accept()
@@ -158,7 +159,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         file = str(file)
         file = file.replace(file[:27], "")
         file = file[:-2]
-        self.load_bnd_file(file)
+        self.load_new_bnd_file(file)
 
     def load_bnd_file(self, file):
         print(file)
@@ -175,6 +176,16 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.load_entries(c.bnd_file)
         else:
             display_error("Not a valid BND file.")
+
+
+    def load_new_bnd_file(self, file):
+        print(file)
+
+        with open(file, "r+b") as f:
+            data = f.read()
+            bnd = NBND(data)
+
+        self.load_bnd_file(file)
 
     def updateCollapsed(self, item):
         self.treeWidget.itemFromIndex(item).setIcon(
@@ -500,7 +511,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         input_file = QtWidgets.QFileDialog.getOpenFileName(self, "Open")
         if input_file:
             if input_file[0] != "":
-                self.load_bnd_file(input_file[0])
+                self.load_new_bnd_file(input_file[0])
 
     def extract_file(self):
         selection = self.treeWidget.selectedItems()

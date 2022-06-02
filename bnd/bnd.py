@@ -2,7 +2,7 @@ import os
 import zlib
 from pathlib import Path
 
-from const import BND_FILE_HEADER, BND_HEADER, GZIP_HEADER
+from const import BND_FILE_HEADER, BND_HEADER, GZIP_HEADER, EMPTY_BLOCK
 from data import *
 
 
@@ -289,13 +289,13 @@ class BND:
                 self.data = []
 
                 # Checks all the empty blocks
-                check = b'\x00'*0x10
+                check = EMPTY_BLOCK
                 empty_blocks = 0
 
-                while check == b'\x00'*0x10:
+                while check == EMPTY_BLOCK:
                     check = read_byte_array(
                         data, 0x28 + empty_blocks * 0x10, 0x10)
-                    if check == b'\x00'*0x10:
+                    if check == EMPTY_BLOCK:
                         empty_blocks += 1
 
                 self.entries -= empty_blocks
