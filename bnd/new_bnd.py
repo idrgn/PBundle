@@ -71,7 +71,8 @@ class NBND(Container):
             self.data = data
         else:
             self.read_from_file(data)
-        self.print_data()
+        
+        # self.print_data()
 
     def add_default_values(self):
         self.is_raw = False
@@ -189,7 +190,6 @@ class NBND(Container):
                     # If unequal, do action
                     if processed_level != current_folder_level or is_change_a_folder:
 
-
                         # If level is higher than current one, subfolder must be created
                         if processed_level > current_folder_level:
                             # If level is root, add to root
@@ -198,15 +198,17 @@ class NBND(Container):
                             current_folder_object = new_folder
 
                         # If level is lower than current one, subfolder must be exited
-                        else:
+                        elif processed_level < current_folder_level:
                             # Execute difference amount of times in case there is a jump
                             difference = current_folder_level - processed_level
                             for _ in range(difference):
                                 # Get parent
                                 current_folder_object = current_folder_object.get_parent()
 
+
                         # If change is a folder, and it is in the same level as the old one
-                        if (current_folder_object.depth == 1 and is_change_a_folder):
+                        if (is_change_a_folder and processed_level <= current_folder_level):
+                            print("New folder in root:" + file_name)
                             # Back to parent
                             current_folder_object = current_folder_object.get_parent()
                             # Create new folder
