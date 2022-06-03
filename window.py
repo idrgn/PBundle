@@ -17,13 +17,13 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         super().__init__()
         
         # Init
+        self.path = None
         self.setupUi(self)
         self.set_connections()
 
         # Delete temp
         shutil.rmtree(tempfile.gettempdir() + os.sep +"bnd_editor" + os.sep, ignore_errors=True)
         self.setWindowIcon(QtGui.QIcon(resource_path("res" + os.sep + "icon.png")))
-        self.action_load.triggered.connect(self.select_bnd)
 
         # If opened via cmd with parameters
         if len(sys.argv) > 1:
@@ -33,11 +33,19 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 self.load_bnd_file(file)
 
     def set_connections(self):
+        """
+        Set UI element connections
+        """
+        self.action_load.triggered.connect(self.select_bnd)
+        self.action_save.triggered.connect(self.save_bnd_file)
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
 
     def open_local_bnd(self):
+        """
+        Open BND inside the current BND
+        """
         selected_item = self.get_selected_item()
         if selected_item:
             if not selected_item.bundleItem.is_raw and not selected_item.bundleItem.is_folder:
@@ -122,8 +130,18 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         with open(file, "r+b") as f:
             data = f.read()
+            self.path = file
             self.bnd = BND(data)
             self.reload_entries()
+
+    def save_bnd_file(self):
+        """
+        Saves BND file
+        """
+        print("Saving BND")
+        if self.path and self.bnd:
+            with open(self.path + ".out", "wb") as f:
+                f.write(self.bnd.to_bytes())
 
     def reload_entries(self):
         """
