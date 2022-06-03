@@ -1,8 +1,9 @@
+import binascii
 import shutil
 import sys
 import tempfile
 
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 from bnd.bnd import BND
 from data import *
@@ -68,10 +69,39 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         selected_item = self.get_selected_item()
         if selected_item:
-            if not selected_item.bundleItem.is_raw and not selected_item.bundleItem.is_folder:
+            bundle = selected_item.bundleItem
+            if not bundle.is_raw and not bundle.is_folder:
                 self.pb_open.setEnabled(True)
             else:
                 self.pb_open.setEnabled(False)
+
+            # CRC text
+            self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
+            self.le_crc.setToolTip("File: " + bundle.get_name())
+            
+            # CRC tooltip
+            to_bytes = bundle.to_bytes()
+            self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
+            self.le_size.setToolTip("Size: " + str(len(to_bytes)) + " bytes")
+
+            # Unknown
+            self.te_preview.setText("")
+
+            # Hex view
+            if len(to_bytes) > 0:
+                string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
+
+                string = ' '.join(string[i:i+2] for i in range(0, len(string), 2))
+                string = '\n'.join(string[i:i+24] for i in range(0, len(string), 24))
+                lines = string.splitlines()
+                self.te_preview.append("\n")
+                counter = 0
+                for line in lines:
+                    line = "{0:#0{1}x}".format(counter * 8, 4) + " " + line
+                    self.te_preview.append(line)
+                    self.te_preview.setAlignment(QtCore.Qt.AlignLeft)
+                    counter += 1
+
         else:
             self.pb_open.setEnabled(False)
 
