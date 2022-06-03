@@ -321,6 +321,8 @@ class BND:
             else:
                 return self.data
 
+
+
         #  === SECTION: HEADER
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
@@ -338,9 +340,13 @@ class BND:
         file += (file_count+self.empty_blocks).to_bytes(4, "little", signed=False)  # entries = amount of entries
         file += b'\x00' * 0x10 * self.empty_blocks
 
-        # get data of all the contained items
+
+
+        # === SECTION: CRC LIST
+        # == Generate a list with all the items inside the BND and their bytes
         formatted_list = []
 
+        # get data of all the contained items
         file_list = self.get_depth_file_list()
         for item in file_list:
             file_bytes = item.to_bytes()
@@ -362,10 +368,8 @@ class BND:
             file += EMPTY_WORD
             file += item["size"].to_bytes(4, "little", signed=False)
             
-            
-            
-            
-            
+
+
         # === SECTION: EXTRA DATA
         leng = 255
         data_address = 0
@@ -424,7 +428,6 @@ class BND:
         for i in range(len(data_address_list)):
             file = replace_byte_array(file, data_address_list[i]["address"]+0x8, (base + data_address_list[i]["data_address"]).to_bytes(4, "little", signed=False))
 
-
         # Write the file data
         file = bytearray(file)
         # Iterate over all addresses
@@ -436,6 +439,10 @@ class BND:
                 file += b'\x00'
         # Convert back to bytes
         file = bytes(file)
+
+        # Gzip
+        if self.is_gzipped:
+            file = gzip.compress(file)
 
         # Encrypt
         if self.encrypted:
