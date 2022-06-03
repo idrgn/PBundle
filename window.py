@@ -80,14 +80,15 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.le_crc.setToolTip("File: " + bundle.get_name())
             
             # CRC tooltip
-            to_bytes = bundle.to_bytes()
+            to_bytes = bundle.to_bytes(ignore_gzip = True)
             self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
-            self.le_size.setToolTip("Size: " + str(len(to_bytes)) + " bytes")
+            self.le_size.setToolTip("Size (ungzipped): " + str(len(to_bytes)) + " bytes")
 
             # Unknown
             self.te_preview.setText("")
 
             # Hex view
+            # TODO: Update on thread
             if len(to_bytes) > 0:
                 string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
 

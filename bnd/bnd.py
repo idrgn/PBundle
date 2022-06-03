@@ -24,7 +24,7 @@ class BND:
 
         # Gzipped or single BND
         self.is_gzipped = False
-        self.is_single_bnd_file = False
+        self.is_single_file = False
 
         # Default values
         self.add_default_values()
@@ -192,7 +192,7 @@ class BND:
                 # Add the simple BND header to the file
                 self.data = data
                 data = BND_FILE_HEADER + data
-                self.is_single_bnd_file = True
+                self.is_single_file = True
 
         # If header is BND
         if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
@@ -311,7 +311,7 @@ class BND:
             self.data = data
             self.is_raw = True
 
-    def to_bytes(self):
+    def to_bytes(self, ignore_gzip: bool = False):
         """
         Generates to_bytes object
         """
@@ -324,8 +324,8 @@ class BND:
             return b''
 
         # If single file
-        if self.is_single_bnd_file:
-            if self.is_gzipped:
+        if self.is_single_file:
+            if self.is_gzipped and not ignore_gzip:
                 return gzip.compress(self.data)
             else:
                 return self.data
@@ -450,7 +450,7 @@ class BND:
         file = bytes(file)
 
         # Gzip
-        if self.is_gzipped:
+        if self.is_gzipped and not ignore_gzip:
             file = gzip.compress(file)
 
         # Encrypt
