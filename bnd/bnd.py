@@ -88,7 +88,7 @@ class BND:
         """
         print("File: " + self.name)
         for item in self.file_list:
-            print(" - Files in folder " + str(item.get_name()) + " : " + str(item.get_file_count()))
+            print(" - Files in folder " + str(item.get_full_path()) + " : " + str(item.get_file_count()))
 
     def get_file_count(self):
         """
@@ -137,14 +137,36 @@ class BND:
         """
         return self.parent
 
-    def get_name(self):
+    def get_full_path(self):
         """
-        Return own name
+        Return full path
+        """
+        name = self.name
+
+        # If no name, add root
+        if name == "": name = "root"
+
+        # If has parent, add parent name
+        if self.parent:
+            name = self.parent.get_full_path() + name
+
+        # If noit folder, add slash
+        if not self.is_folder:
+            name = name + "/"
+
+        return name
+
+    def get_local_path(self):
+        """
+        Return local path
         """
         if self.parent == None:
             return self.name
         else:
-            return self.parent.get_name() + self.name
+            if not self.parent.is_folder:
+                return self.name
+            else:
+                return self.parent.get_local_path() + self.name
 
     def add_to_file_list(self, item: object):
         """
@@ -157,7 +179,7 @@ class BND:
         """
         Converts full path to CRC
         """
-        return zlib.crc32(str.encode(self.get_name()))
+        return zlib.crc32(str.encode(self.get_local_path()))
 
     def set_parent(self, parent: object):
         """

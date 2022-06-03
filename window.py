@@ -77,7 +77,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
             # CRC text
             self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
-            self.le_crc.setToolTip("File: " + bundle.get_name())
+            self.le_crc.setToolTip("File: " + bundle.get_local_path())
             
             # CRC tooltip
             to_bytes = bundle.to_bytes(ignore_gzip = True)
@@ -195,3 +195,6 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_replace_file.setEnabled(True)
         self.pb_movedown.setEnabled(True)
         self.pb_moveup.setEnabled(True)
+
+        # Change title
+        self.treeWidget.setHeaderLabel(self.bnd.get_full_path())
