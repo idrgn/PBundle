@@ -138,10 +138,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Saves BND file
         """
-        print("Saving BND")
         if self.path and self.bnd:
             with open(self.path + ".out", "wb") as f:
-                f.write(self.bnd.to_bytes())
+                f.write(self.bnd.get_root_parent().to_bytes())
 
     def reload_entries(self):
         """

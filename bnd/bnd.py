@@ -39,6 +39,15 @@ class BND:
         # Print data
         # self.print_data()
 
+    def get_root_parent(self):
+        """
+        Gets root parent
+        """
+        if self.parent == None:
+            return self
+        else:
+            return self.get_root_parent()
+
     def get_depth_file_list(self):
         """
         Gets file list with folders in same directory, in order
