@@ -13,9 +13,7 @@ from interface.tree_bundle_item import QTreeWidgetBundleItem
 
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def __init__(self):
-        QtGui.QFontDatabase.addApplicationFont(
-            resource_path("res" + os.sep + "font.ttc")
-        )
+        QtGui.QFontDatabase.addApplicationFont(resource_path("res/font.ttc").as_posix())
         super().__init__()
 
         # Init
@@ -25,9 +23,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Delete temp
         shutil.rmtree(
-            tempfile.gettempdir() + os.sep + "bnd_editor" + os.sep, ignore_errors=True
+            Path(tempfile.gettempdir()).joinpath("bnd_editor/"), ignore_errors=True
         )
-        self.setWindowIcon(QtGui.QIcon(resource_path("res" + os.sep + "icon.png")))
+        self.setWindowIcon(QtGui.QIcon(resource_path("res/icon.png").as_posix()))
 
         # If opened via cmd with parameters
         if len(sys.argv) > 1:

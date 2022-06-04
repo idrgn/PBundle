@@ -23,7 +23,7 @@ class BND:
         name: str = "",
         depth: int = 0,
         encrypted: bool = False,
-        is_folder=False,
+        is_folder: bool = False,
         level: int = None,
     ):
         self.file_list = []
@@ -106,10 +106,7 @@ class BND:
         print("File: " + self.name)
         for item in self.file_list:
             print(
-                " - Files in folder "
-                + str(item.get_full_path())
-                + " : "
-                + str(item.get_file_count())
+                f" - Files in folder {item.get_full_path()} : {item.get_file_count()}"
             )
 
     def get_file_count(self):
@@ -306,7 +303,7 @@ class BND:
                         data, pointer_data, file_size
                     )  # File data
 
-                    # FILE LEVEL IS ALWAYS FOLDE RLEVEL IN NEGATIVE MINUS ONE
+                    # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
                     # EXAMPLE:
                     # - A file in the root directory will be level -1
                     # - A file in 2 folders will be -3

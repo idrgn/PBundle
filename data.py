@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+from pathlib import Path
 from subprocess import check_output
 
 
@@ -9,13 +10,7 @@ def p3hash(data, mode):
         temp = tf.name
         tf.write(data)
         check_output(
-            resource_path("res\ext\p3h.exe")
-            + " "
-            + tf.name
-            + " "
-            + tf.name
-            + "1 "
-            + mode,
+            f"{resource_path('res/ext/p3h.exe').as_posix()} {tf.name} {tf.name}1 {mode}",
             shell=True,
         )
         with open(tf.name + "1", "rb") as tf2:
@@ -25,10 +20,11 @@ def p3hash(data, mode):
     return data
 
 
-def resource_path(relative_path):
+def resource_path(relative_path) -> Path:
+    current_path = Path(".")
     if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+        current_path = Path(sys._MEIPASS)
+    return current_path.joinpath(relative_path)
 
 
 def replace_byte_array(fdata, position, value):
