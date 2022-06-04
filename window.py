@@ -3,7 +3,7 @@ import shutil
 import sys
 import tempfile
 
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
 from data import *
@@ -14,16 +14,19 @@ from interface.tree_bundle_item import QTreeWidgetBundleItem
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def __init__(self):
         QtGui.QFontDatabase.addApplicationFont(
-            resource_path("res" + os.sep + "font.ttc"))
+            resource_path("res" + os.sep + "font.ttc")
+        )
         super().__init__()
-        
+
         # Init
         self.path = None
         self.setupUi(self)
         self.set_connections()
 
         # Delete temp
-        shutil.rmtree(tempfile.gettempdir() + os.sep +"bnd_editor" + os.sep, ignore_errors=True)
+        shutil.rmtree(
+            tempfile.gettempdir() + os.sep + "bnd_editor" + os.sep, ignore_errors=True
+        )
         self.setWindowIcon(QtGui.QIcon(resource_path("res" + os.sep + "icon.png")))
 
         # If opened via cmd with parameters
@@ -49,7 +52,10 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         selected_item = self.get_selected_item()
         if selected_item:
-            if not selected_item.bundleItem.is_raw and not selected_item.bundleItem.is_folder:
+            if (
+                not selected_item.bundleItem.is_raw
+                and not selected_item.bundleItem.is_folder
+            ):
                 self.bnd = selected_item.bundleItem
                 self.reload_entries()
 
@@ -78,11 +84,13 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             # CRC text
             self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
             self.le_crc.setToolTip("File: " + bundle.get_local_path())
-            
+
             # CRC tooltip
-            to_bytes = bundle.to_bytes(ignore_gzip = True)
+            to_bytes = bundle.to_bytes(ignore_gzip=True)
             self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
-            self.le_size.setToolTip("Size (ungzipped): " + str(len(to_bytes)) + " bytes")
+            self.le_size.setToolTip(
+                "Size (ungzipped): " + str(len(to_bytes)) + " bytes"
+            )
 
             # Unknown
             self.te_preview.setText("")
@@ -92,8 +100,10 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             if len(to_bytes) > 0:
                 string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
 
-                string = ' '.join(string[i:i+2] for i in range(0, len(string), 2))
-                string = '\n'.join(string[i:i+24] for i in range(0, len(string), 24))
+                string = " ".join(string[i : i + 2] for i in range(0, len(string), 2))
+                string = "\n".join(
+                    string[i : i + 24] for i in range(0, len(string), 24)
+                )
                 lines = string.splitlines()
                 self.te_preview.append("\n")
                 counter = 0
@@ -185,7 +195,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         for entry in self.bnd.file_list:
             widget = QTreeWidgetBundleItem(entry, self.style())
             self.treeWidget.addTopLevelItem(widget)
-        
+
         # Enable buttons
         self.pb_back.setEnabled(self.bnd.has_parent())
         self.pb_add_file.setEnabled(True)
