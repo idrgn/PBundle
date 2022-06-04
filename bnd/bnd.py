@@ -1,6 +1,6 @@
 import gzip
 import zlib
-from struct import unpack
+from struct import pack
 
 from const import BND_FILE_HEADER, BND_HEADER, EMPTY_BLOCK, EMPTY_WORD, GZIP_HEADER
 from data import (
@@ -243,8 +243,6 @@ class BND:
 
             # Read all the header values
             self.version = read_uchar(data, 0x04)
-            if self.version != unpack("B", read_byte_array(data, 0x04, 0x1))[0]:
-                print(".")
             self.value1 = read_uchar(data, 0x08)
             self.value2 = read_uchar(data, 0x0C)
             self.info = read_uint(data, 0x10)
@@ -406,22 +404,16 @@ class BND:
         #  === SECTION: HEADER
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
-        file += self.version.to_bytes(4, "little", signed=False)  # 0x4
-        file += self.value1.to_bytes(4, "little", signed=False)  # 0x8
-        file += self.value2.to_bytes(4, "little", signed=False)  # 0xC
-        file += (0x28 + self.empty_blocks * 0x10 + file_count * 0x10).to_bytes(
-            4, "little", signed=False
-        )  # 0x10
+        file += pack("III", self.version, self.value1, self.value2)
+        file += pack("I", 0x28 + self.empty_blocks * 0x10 + file_count * 0x10)  # 0x10
 
         # files = address where files start
-        file += self.info.to_bytes(4, "little", signed=False)
+        file += pack("I", self.info)
         file += b"\x00" * 4 * 2
 
         # files = amount of files with value less than zero
-        file += self.get_bnd_count().to_bytes(4, "little", signed=False)
-        file += (file_count + self.empty_blocks).to_bytes(
-            4, "little", signed=False
-        )  # entries = amount of entries
+        file += pack("I", self.get_bnd_count())
+        file += pack("I", file_count + self.empty_blocks)  # entries = amount of entries
         file += b"\x00" * 0x10 * self.empty_blocks
 
         # === SECTION: CRC LIST
@@ -447,10 +439,10 @@ class BND:
 
         # write data: crc - empty (aaddr) - empty (daddr) - size
         for item in formatted_list:
-            file += item["crc"].to_bytes(4, "little", signed=False)
+            file += pack("I", item["crc"])
             file += EMPTY_WORD
             file += EMPTY_WORD
-            file += item["size"].to_bytes(4, "little", signed=False)
+            file += pack("I", item["size"])
 
         # === SECTION: EXTRA DATA
         leng = 255
@@ -492,14 +484,10 @@ class BND:
             if formatted_entry["size"] % 4 != 0:
                 data_address += 4 - (formatted_entry["size"] % 4)
 
-            file = replace_byte_array(
-                file, address + 0x4, len(file).to_bytes(4, "little", signed=False)
-            )
-            file += entry.level.to_bytes(1, "little", signed=True)
-            file += leng.to_bytes(1, "little", signed=False)
+            file = replace_byte_array(file, address + 0x4, pack("I", len(file)))
+            file += pack("bB", entry.level, leng)
             leng = 7 + len(entry.name) + 1
-            file += leng.to_bytes(1, "little", signed=False)
-            file += address.to_bytes(4, "little", signed=False)
+            file += pack("BI", leng, address)
             file += str.encode(entry.name)
             file += b"\x00"
 
@@ -507,9 +495,7 @@ class BND:
         while len(file) % 512 != 0:
             file += b"\x00"
 
-        file = replace_byte_array(
-            file, 0x14, len(file).to_bytes(4, "little", signed=False)
-        )
+        file = replace_byte_array(file, 0x14, pack("I", len(file)))
         base = len(file)
 
         # Replace addresses?
@@ -517,9 +503,7 @@ class BND:
             file = replace_byte_array(
                 file,
                 data_address_list[i]["address"] + 0x8,
-                (base + data_address_list[i]["data_address"]).to_bytes(
-                    4, "little", signed=False
-                ),
+                pack("I", base + data_address_list[i]["data_address"]),
             )
 
         # Write the file data
