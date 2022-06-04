@@ -1,14 +1,16 @@
 import gzip
 import zlib
+from struct import unpack
 
 from const import BND_FILE_HEADER, BND_HEADER, EMPTY_BLOCK, EMPTY_WORD, GZIP_HEADER
 from data import (
     p3hash,
     read_byte_array,
-    read_integer,
-    read_string,
+    read_char,
+    read_str,
+    read_uchar,
+    read_uint,
     replace_byte_array,
-    to_signed,
 )
 
 
@@ -60,7 +62,7 @@ class BND:
         """
         Gets root parent
         """
-        if self.parent == None:
+        if self.parent is None:
             return self
         else:
             return self.get_root_parent()
@@ -103,7 +105,7 @@ class BND:
         """
         Shows all the files inside the BND
         """
-        print("File: " + self.name)
+        print(f"File: {self.name}")
         for item in self.file_list:
             print(
                 f" - Files in folder {item.get_full_path()} : {item.get_file_count()}"
@@ -180,7 +182,7 @@ class BND:
         """
         Return local path
         """
-        if self.parent == None:
+        if self.parent is None:
             return self.name
         else:
             if not self.parent.is_folder:
@@ -240,11 +242,13 @@ class BND:
         if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
 
             # Read all the header values
-            self.version = read_integer(data, 0x04, 0x1)
-            self.value1 = read_integer(data, 0x08, 0x1)
-            self.value2 = read_integer(data, 0x0C, 0x1)
-            self.info = read_integer(data, 0x10, 0x4)
-            self.file = read_integer(data, 0x14, 0x4)
+            self.version = read_uchar(data, 0x04)
+            if self.version != unpack("B", read_byte_array(data, 0x04, 0x1))[0]:
+                print(".")
+            self.value1 = read_uchar(data, 0x08)
+            self.value2 = read_uchar(data, 0x0C)
+            self.info = read_uint(data, 0x10)
+            self.file = read_uint(data, 0x14)
 
             # Checks all the empty blocks
             empty_blocks = 0
@@ -256,7 +260,7 @@ class BND:
                 if check == EMPTY_BLOCK:
                     empty_blocks += 1
 
-            entries = read_integer(data, 0x24, 0x4) - empty_blocks
+            entries = read_uint(data, 0x24) - empty_blocks
 
             self.empty_blocks = empty_blocks
 
@@ -271,32 +275,30 @@ class BND:
 
             for i in range(entries):
 
-                crc_pointer = read_integer(data, self.info + offset + 0x3, 0x4)
+                crc_pointer = read_uint(data, self.info + offset + 0x3)
 
                 if crc_pointer != 0:
                     # Reads CRC block containing data
                     crc_block = read_byte_array(data, crc_pointer, 0x10)
 
                     # Reading data from the CRC block
-                    pointer_attributes = read_integer(
-                        crc_block, 0x4, 0x4
+                    pointer_attributes = read_uint(
+                        crc_block, 0x4
                     )  # Address to extra attributes
-                    pointer_data = read_integer(
-                        crc_block, 0x8, 0x4
+                    pointer_data = read_uint(
+                        crc_block, 0x8
                     )  # Address to the start of the data
-                    file_size = read_integer(crc_block, 0xC, 0x4)  # Size of the data
+                    file_size = read_uint(crc_block, 0xC)  # Size of the data
 
                     # For DATAMS: File sizes are +0x20000000
                     if file_size >= 0x20000000:
                         file_size -= 0x20000000
 
                     # Level of the current file (inside folders)
-                    file_level = to_signed(
-                        read_integer(data, pointer_attributes, 0x1), 1
-                    )
+                    file_level = read_char(data, pointer_attributes)
 
                     # Filename
-                    file_name = read_string(data, pointer_attributes + 0x7)
+                    file_name = read_str(data, pointer_attributes + 0x7)
 
                     # Read file data
                     file_data = read_byte_array(

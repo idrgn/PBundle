@@ -81,14 +81,12 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
             # CRC text
             self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
-            self.le_crc.setToolTip("File: " + bundle.get_local_path())
+            self.le_crc.setToolTip(f"File: {bundle.get_local_path()}")
 
             # CRC tooltip
             to_bytes = bundle.to_bytes(ignore_gzip=True)
             self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
-            self.le_size.setToolTip(
-                "Size (ungzipped): " + str(len(to_bytes)) + " bytes"
-            )
+            self.le_size.setToolTip(f"Size (ungzipped): {len(to_bytes)} bytes")
 
             # Unknown
             self.te_preview.setText("")
