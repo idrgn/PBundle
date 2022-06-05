@@ -96,9 +96,6 @@ class BND:
         self.version = None
         self.value1 = None
         self.value2 = None
-        self.info = None
-        self.file = None
-        self.entries = None
         self.empty_blocks = None
 
     def print_data(self):
@@ -136,10 +133,13 @@ class BND:
     def get_bnd_count(self):
         """
         Counts amount of BND files
+        TODO: Get proper amount
         """
         count = 0
         for item in self.file_list:
-            if not item.is_folder:
+            if item.is_folder:
+                count += item.get_bnd_count()
+            else:
                 count += 1
         return count
 
@@ -245,8 +245,7 @@ class BND:
             self.version = read_uchar(data, 0x04)
             self.value1 = read_uchar(data, 0x08)
             self.value2 = read_uchar(data, 0x0C)
-            self.info = read_uint(data, 0x10)
-            self.file = read_uint(data, 0x14)
+            info = read_uint(data, 0x10)
 
             # Checks all the empty blocks
             empty_blocks = 0
@@ -265,15 +264,13 @@ class BND:
             # Start reading the data
             offset = 0x0
 
-            # How the file level structure will work
-            # # If it increases, create a new folder and continue the loop in there
-            # # If it decreases
+            # Files
             current_level = 0
             current_object = self
 
-            for i in range(entries):
+            for _ in range(entries):
 
-                crc_pointer = read_uint(data, self.info + offset + 0x3)
+                crc_pointer = read_uint(data, info + offset + 0x3)
 
                 if crc_pointer != 0:
                     # Reads CRC block containing data
@@ -384,7 +381,7 @@ class BND:
 
     def to_bytes(self, ignore_gzip: bool = False):
         """
-        Generates to_bytes object
+        Generates bytes from file data
         """
         # If raw just return own file
         if self.is_raw:
@@ -404,19 +401,32 @@ class BND:
         #  === SECTION: HEADER
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
-        file += pack("III", self.version, self.value1, self.value2)
-        file += pack("I", 0x28 + self.empty_blocks * 0x10 + file_count * 0x10)  # 0x10
 
-        # files = address where files start
-        file += pack("I", self.info)
-        file += b"\x00" * 4 * 2
+        # TODO: Check value1 not being written properly
+        file += pack(
+            "IIII",
+            self.version,
+            self.value1,
+            self.value2,
+            0x28 + self.empty_blocks * 0x10 + file_count * 0x10,
+        )  # 0x4 - 0x10
 
-        # files = amount of files with value less than zero
-        file += pack("I", self.get_bnd_count())
-        file += pack("I", file_count + self.empty_blocks)  # entries = amount of entries
+        # Pointers:
+        # - Address where file info starts
+        # - Address where files start
+        # - 0x00000000
+        # - 0x00000000
+        # This should actually be *4 but for some reason it adds one extra?
+        file += EMPTY_WORD * 3
+
+        # Files:
+        # - Amount of files with value less than zero
+        # - Amount of files + empty blocks
+        # - 0x00000000 * 0x4 * amount of empty blocks (might not be needed)
+        file += pack("II", self.get_bnd_count(), file_count + self.empty_blocks)
         file += b"\x00" * 0x10 * self.empty_blocks
 
-        # === SECTION: CRC LIST
+        # === SECTION: CRC BLOCK
         # == Generate a list with all the items inside the BND and their bytes
         formatted_list = []
 
@@ -434,37 +444,35 @@ class BND:
                 }
             )
 
-        # reorder by crc
+        # Reorder by crc
         formatted_list = sorted(formatted_list, key=lambda d: d["crc"])
 
-        # write data: crc - empty (aaddr) - empty (daddr) - size
+        # Write data: crc - empty (aaddr) - empty (daddr) - size
         for item in formatted_list:
             file += pack("I", item["crc"])
-            file += EMPTY_WORD
-            file += EMPTY_WORD
+            file += EMPTY_WORD  # info address
+            file += EMPTY_WORD  # file data address
             file += pack("I", item["size"])
 
-        # === SECTION: EXTRA DATA
-        leng = 255
-        data_address = 0
+        # === SECTION: FILE INFO
+        previous_entry_length = 255
+        current_data_address = 0
         data_address_list = []
 
-        for entry in file_list:
+        # Address where the file data starts
+        file = replace_byte_array(file, 0x10, pack("I", len(file)))
 
+        for entry in file_list:
             # Current file CRC
             crc = entry.get_crc()
 
-            # First CRC of list
-            newcrc = formatted_list[0]["crc"]
-            index = 0
-
-            # Finds CRC in CRC list
-            while crc != newcrc and index + 1 < len(formatted_list):
-                index += 1
-                newcrc = formatted_list[index]["crc"]
-
             # Get formatted entry
-            formatted_entry = formatted_list[index]
+            formatted_entry = next(
+                item for item in formatted_list if item["crc"] == crc
+            )
+
+            # Index of item inside the list
+            index = formatted_list.index(formatted_entry)
 
             # Calculates address of extra_data
             address = index * 0x10 + 0x28 + 0x10 * self.empty_blocks
@@ -472,42 +480,63 @@ class BND:
             # Appends the data address to the list
             data_address_list.append(
                 {
-                    "data_address": data_address,
-                    "address": address,
+                    "data_address": current_data_address,
+                    "crc_block_address": address,
                     "bytes": formatted_entry["bytes"],
                 }
             )
 
-            data_address += formatted_entry["size"]
+            # Is this even used?
+            current_data_address += formatted_entry["size"]
 
             # Add base 4 to length
             if formatted_entry["size"] % 4 != 0:
-                data_address += 4 - (formatted_entry["size"] % 4)
+                current_data_address += 4 - (formatted_entry["size"] % 4)
 
+            # Get length of current entry
+            current_entry_length = 7 + len(entry.name) + 1
+
+            # Write address to this file data block to the CRC block
             file = replace_byte_array(file, address + 0x4, pack("I", len(file)))
-            file += pack("bB", entry.level, leng)
-            leng = 7 + len(entry.name) + 1
-            file += pack("BI", leng, address)
-            file += str.encode(entry.name)
-            file += b"\x00"
+
+            # Entry depth level + previous entry data length (0xFF if first one)
+            file += pack("bB", entry.level, previous_entry_length)
+
+            # Current entry data length
+            file += pack("B", current_entry_length)
+
+            # Address of the corresponding CRC block
+            file += pack("<I", address)
+
+            # Filename (should it be full name? w folder)
+            file += str.encode(entry.name) + b"\x00"
+
+            # Update
+            previous_entry_length = current_entry_length
 
         # File must end in 512
         while len(file) % 512 != 0:
             file += b"\x00"
 
-        file = replace_byte_array(file, 0x14, pack("I", len(file)))
-        base = len(file)
+        # === SECTION: FILE DATA
 
-        # Replace addresses?
+        # Address where the file data starts
+        # Not sure if this spacing is needed (present in DATACMN)
+        # file + b"\x00" + 0x600
+        base = len(file)
+        file = replace_byte_array(file, 0x14, pack("I", len(file)))
+
+        # Add addresses to CRC block
         for i in range(len(data_address_list)):
             file = replace_byte_array(
                 file,
-                data_address_list[i]["address"] + 0x8,
+                data_address_list[i]["crc_block_address"] + 0x8,
                 pack("I", base + data_address_list[i]["data_address"]),
             )
 
         # Write the file data
         file = bytearray(file)
+
         # Iterate over all addresses
         for i in range(len(data_address_list)):
             # Also grabbing files from data by index
@@ -515,6 +544,7 @@ class BND:
             # Make it so next file always start on 0x4 multiple
             while len(file) % 4 != 0:
                 file += b"\x00"
+
         # Convert back to bytes
         file = bytes(file)
 
