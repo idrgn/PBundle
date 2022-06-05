@@ -1,4 +1,3 @@
-
 from bnd.bnd import BND
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QStyle, QTreeWidgetItem

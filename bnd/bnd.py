@@ -1,15 +1,33 @@
 import gzip
 import zlib
+from struct import pack
 
 from const import BND_FILE_HEADER, BND_HEADER, EMPTY_BLOCK, EMPTY_WORD, GZIP_HEADER
-from data import p3hash, read_byte_array, read_integer, read_string, replace_byte_array, to_signed
+from data import (
+    p3hash,
+    read_byte_array,
+    read_char,
+    read_str,
+    read_uchar,
+    read_uint,
+    replace_byte_array,
+)
 
 
 class BND:
     """
     BND Object
     """
-    def __init__(self, data: bytes = [], name: str = "", depth: int = 0, encrypted: bool = False, is_folder = False, level:int = None):
+
+    def __init__(
+        self,
+        data: bytes = [],
+        name: str = "",
+        depth: int = 0,
+        encrypted: bool = False,
+        is_folder: bool = False,
+        level: int = None,
+    ):
         self.file_list = []
         self.name = name
         self.depth = depth
@@ -20,7 +38,8 @@ class BND:
         # Is folder
         self.is_folder = is_folder
         self.is_raw = False
-        if self.is_folder: return
+        if self.is_folder:
+            return
 
         # Gzipped or single BND
         self.is_gzipped = False
@@ -35,7 +54,7 @@ class BND:
             self.data = data
         else:
             self.read_from_file(data)
-        
+
         # Print data
         # self.print_data()
 
@@ -43,7 +62,7 @@ class BND:
         """
         Gets root parent
         """
-        if self.parent == None:
+        if self.parent is None:
             return self
         else:
             return self.get_root_parent()
@@ -86,9 +105,11 @@ class BND:
         """
         Shows all the files inside the BND
         """
-        print("File: " + self.name)
+        print(f"File: {self.name}")
         for item in self.file_list:
-            print(" - Files in folder " + str(item.get_full_path()) + " : " + str(item.get_file_count()))
+            print(
+                f" - Files in folder {item.get_full_path()} : {item.get_file_count()}"
+            )
 
     def get_file_count(self):
         """
@@ -119,7 +140,7 @@ class BND:
         count = 0
         for item in self.file_list:
             if not item.is_folder:
-                count +=1
+                count += 1
         return count
 
     def get_last_folder(self):
@@ -144,7 +165,8 @@ class BND:
         name = self.name
 
         # If no name, add root
-        if name == "": name = "root"
+        if name == "":
+            name = "root"
 
         # If has parent, add parent name
         if self.parent:
@@ -160,7 +182,7 @@ class BND:
         """
         Return local path
         """
-        if self.parent == None:
+        if self.parent is None:
             return self.name
         else:
             if not self.parent.is_folder:
@@ -220,11 +242,11 @@ class BND:
         if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
 
             # Read all the header values
-            self.version = read_integer(data, 0x04, 0x1)
-            self.value1 = read_integer(data, 0x08, 0x1)
-            self.value2 = read_integer(data, 0x0C, 0x1)
-            self.info = read_integer(data, 0x10, 0x4)
-            self.file = read_integer(data, 0x14, 0x4)
+            self.version = read_uchar(data, 0x04)
+            self.value1 = read_uchar(data, 0x08)
+            self.value2 = read_uchar(data, 0x0C)
+            self.info = read_uint(data, 0x10)
+            self.file = read_uint(data, 0x14)
 
             # Checks all the empty blocks
             empty_blocks = 0
@@ -236,7 +258,7 @@ class BND:
                 if check == EMPTY_BLOCK:
                     empty_blocks += 1
 
-            entries = read_integer(data, 0x24, 0x4) - empty_blocks
+            entries = read_uint(data, 0x24) - empty_blocks
 
             self.empty_blocks = empty_blocks
 
@@ -251,31 +273,37 @@ class BND:
 
             for i in range(entries):
 
-                crc_pointer = read_integer(data, self.info + offset + 0x3, 0x4)
+                crc_pointer = read_uint(data, self.info + offset + 0x3)
 
                 if crc_pointer != 0:
                     # Reads CRC block containing data
                     crc_block = read_byte_array(data, crc_pointer, 0x10)
 
                     # Reading data from the CRC block
-                    pointer_attributes = read_integer(crc_block, 0x4, 0x4) # Address to extra attributes
-                    pointer_data = read_integer(crc_block, 0x8, 0x4) # Address to the start of the data
-                    file_size = read_integer(crc_block, 0xC, 0x4)  # Size of the data
+                    pointer_attributes = read_uint(
+                        crc_block, 0x4
+                    )  # Address to extra attributes
+                    pointer_data = read_uint(
+                        crc_block, 0x8
+                    )  # Address to the start of the data
+                    file_size = read_uint(crc_block, 0xC)  # Size of the data
 
                     # For DATAMS: File sizes are +0x20000000
                     if file_size >= 0x20000000:
                         file_size -= 0x20000000
 
                     # Level of the current file (inside folders)
-                    file_level = to_signed(read_integer(data, pointer_attributes, 0x1), 1)
+                    file_level = read_char(data, pointer_attributes)
 
                     # Filename
-                    file_name = read_string(data, pointer_attributes + 0x7)
+                    file_name = read_str(data, pointer_attributes + 0x7)
 
                     # Read file data
-                    file_data = read_byte_array(data, pointer_data, file_size)  # File data
+                    file_data = read_byte_array(
+                        data, pointer_data, file_size
+                    )  # File data
 
-                    # FILE LEVEL IS ALWAYS FOLDE RLEVEL IN NEGATIVE MINUS ONE
+                    # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
                     # EXAMPLE:
                     # - A file in the root directory will be level -1
                     # - A file in 2 folders will be -3
@@ -283,7 +311,7 @@ class BND:
                     is_change_a_folder = False
                     processed_level = current_level
 
-                    if (file_level < 0):
+                    if file_level < 0:
                         processed_level = abs(file_level) - 1
                     else:
                         processed_level = file_level
@@ -295,7 +323,14 @@ class BND:
                         # If level is higher than current one, subfolder must be created
                         if processed_level > current_level:
                             # If level is root, add to root
-                            new_folder = BND(None, file_name, processed_level, self.encrypted, True, level = file_level)
+                            new_folder = BND(
+                                None,
+                                file_name,
+                                processed_level,
+                                self.encrypted,
+                                True,
+                                level=file_level,
+                            )
                             current_object.add_to_file_list(new_folder)
                             current_object = new_folder
 
@@ -307,13 +342,19 @@ class BND:
                                 # Get parent
                                 current_object = current_object.get_parent()
 
-
                         # If change is a folder, and it is in the same level as the old one
-                        if (is_change_a_folder and processed_level <= current_level):
+                        if is_change_a_folder and processed_level <= current_level:
                             # Back to parent
                             current_object = current_object.get_parent()
                             # Create new folder
-                            new_folder = BND(None, file_name, processed_level, self.encrypted, True, level = file_level)
+                            new_folder = BND(
+                                None,
+                                file_name,
+                                processed_level,
+                                self.encrypted,
+                                True,
+                                level=file_level,
+                            )
                             # Set to current object
                             current_object.add_to_file_list(new_folder)
                             current_object = new_folder
@@ -322,12 +363,20 @@ class BND:
                         current_level = processed_level
 
                     # Add file
-                    if (file_level < 0):
-                        current_object.add_to_file_list(BND(file_data, file_name, current_object.depth, self.encrypted, level = file_level))
+                    if file_level < 0:
+                        current_object.add_to_file_list(
+                            BND(
+                                file_data,
+                                file_name,
+                                current_object.depth,
+                                self.encrypted,
+                                level=file_level,
+                            )
+                        )
 
                     # Add offset
                     offset += 7 + len(file_name) + 1
-        
+
         # If not BND, raw
         else:
             self.data = data
@@ -343,7 +392,7 @@ class BND:
 
         # If folder return empty
         if self.is_folder:
-            return b''
+            return b""
 
         # If single file
         if self.is_single_file:
@@ -352,26 +401,20 @@ class BND:
             else:
                 return self.data
 
-
-
         #  === SECTION: HEADER
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
-        file += self.version.to_bytes(4, "little", signed=False)  # 0x4
-        file += self.value1.to_bytes(4, "little", signed=False)  # 0x8
-        file += self.value2.to_bytes(4, "little", signed=False)  # 0xC
-        file += (0x28 + self.empty_blocks*0x10 + file_count * 0x10).to_bytes(4, "little", signed=False)  # 0x10
+        file += pack("III", self.version, self.value1, self.value2)
+        file += pack("I", 0x28 + self.empty_blocks * 0x10 + file_count * 0x10)  # 0x10
 
         # files = address where files start
-        file += self.info.to_bytes(4, "little", signed=False)
-        file += b'\x00' * 4 * 2
+        file += pack("I", self.info)
+        file += b"\x00" * 4 * 2
 
         # files = amount of files with value less than zero
-        file += self.get_bnd_count().to_bytes(4, "little", signed=False)
-        file += (file_count+self.empty_blocks).to_bytes(4, "little", signed=False)  # entries = amount of entries
-        file += b'\x00' * 0x10 * self.empty_blocks
-
-
+        file += pack("I", self.get_bnd_count())
+        file += pack("I", file_count + self.empty_blocks)  # entries = amount of entries
+        file += b"\x00" * 0x10 * self.empty_blocks
 
         # === SECTION: CRC LIST
         # == Generate a list with all the items inside the BND and their bytes
@@ -382,24 +425,24 @@ class BND:
         for item in file_list:
             file_bytes = item.to_bytes()
 
-            formatted_list.append({
-                "crc": item.get_crc(),
-                "name": item.name,
-                "size": len(file_bytes),
-                "bytes": file_bytes
-            })
+            formatted_list.append(
+                {
+                    "crc": item.get_crc(),
+                    "name": item.name,
+                    "size": len(file_bytes),
+                    "bytes": file_bytes,
+                }
+            )
 
         # reorder by crc
-        formatted_list = sorted(formatted_list, key=lambda d: d["crc"]) 
+        formatted_list = sorted(formatted_list, key=lambda d: d["crc"])
 
         # write data: crc - empty (aaddr) - empty (daddr) - size
         for item in formatted_list:
-            file += item["crc"].to_bytes(4, "little", signed=False)
+            file += pack("I", item["crc"])
             file += EMPTY_WORD
             file += EMPTY_WORD
-            file += item["size"].to_bytes(4, "little", signed=False)
-            
-
+            file += pack("I", item["size"])
 
         # === SECTION: EXTRA DATA
         leng = 255
@@ -427,37 +470,41 @@ class BND:
             address = index * 0x10 + 0x28 + 0x10 * self.empty_blocks
 
             # Appends the data address to the list
-            data_address_list.append({
-                "data_address": data_address, 
-                "address": address,
-                "bytes": formatted_entry["bytes"]
-                })
-                
+            data_address_list.append(
+                {
+                    "data_address": data_address,
+                    "address": address,
+                    "bytes": formatted_entry["bytes"],
+                }
+            )
+
             data_address += formatted_entry["size"]
 
             # Add base 4 to length
             if formatted_entry["size"] % 4 != 0:
                 data_address += 4 - (formatted_entry["size"] % 4)
 
-            file = replace_byte_array(file, address + 0x4, len(file).to_bytes(4, "little", signed=False))
-            file += entry.level.to_bytes(1, "little", signed=True)
-            file += leng.to_bytes(1, "little", signed=False)
+            file = replace_byte_array(file, address + 0x4, pack("I", len(file)))
+            file += pack("bB", entry.level, leng)
             leng = 7 + len(entry.name) + 1
-            file += leng.to_bytes(1, "little", signed=False)
-            file += address.to_bytes(4, "little", signed=False)
+            file += pack("BI", leng, address)
             file += str.encode(entry.name)
-            file += b'\x00'
-    
+            file += b"\x00"
+
         # File must end in 512
         while len(file) % 512 != 0:
-            file += b'\x00'
-        
-        file = replace_byte_array(file, 0x14, len(file).to_bytes(4, "little", signed=False))
+            file += b"\x00"
+
+        file = replace_byte_array(file, 0x14, pack("I", len(file)))
         base = len(file)
 
         # Replace addresses?
         for i in range(len(data_address_list)):
-            file = replace_byte_array(file, data_address_list[i]["address"]+0x8, (base + data_address_list[i]["data_address"]).to_bytes(4, "little", signed=False))
+            file = replace_byte_array(
+                file,
+                data_address_list[i]["address"] + 0x8,
+                pack("I", base + data_address_list[i]["data_address"]),
+            )
 
         # Write the file data
         file = bytearray(file)
@@ -467,7 +514,7 @@ class BND:
             file += data_address_list[i]["bytes"]
             # Make it so next file always start on 0x4 multiple
             while len(file) % 4 != 0:
-                file += b'\x00'
+                file += b"\x00"
         # Convert back to bytes
         file = bytes(file)
 
