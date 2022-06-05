@@ -133,7 +133,6 @@ class BND:
     def get_bnd_count(self):
         """
         Counts amount of BND files
-        TODO: Get proper amount
         """
         count = 0
         for item in self.file_list:
