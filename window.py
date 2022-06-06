@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from bnd.bnd import BND
 from data import *
 from interface import main_window
-from interface.tree_bundle_item import QTreeWidgetBundleItem
+from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
 
 
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
@@ -23,6 +23,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.setupUi(self)
         self.set_connections()
         self.current_extracted_items = []
+        self.treeWidget.setStyle(self.style())
 
         # Delete temp
         shutil.rmtree(
@@ -59,35 +60,56 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         selected = self.get_selected_item()
         new_folder_bundle = BND(name="new folder/", depth=1, is_folder=True, level=1)
-        new_widget = QTreeWidgetBundleItem(new_folder_bundle, self.style())
+        new_widget = QTreeWidgetItemBundle(new_folder_bundle, self.style())
 
         # If not selected, add to root
         if not selected:
             self.bnd.add_to_file_list(new_folder_bundle, True)
-            self.treeWidget.addTopLevelItem(new_widget)
+            self.treeWidget.addChildBundle(new_widget)
         else:
-            current_bundle = selected.bundleItem
-            # If selected is a folder, add to selected with current level
-            if current_bundle.is_folder:
-                new_folder_bundle.depth = current_bundle.depth + 1
-                new_folder_bundle.level = current_bundle.level + 1
-                selected.addChild(new_widget)
+            bundle = selected.bundle
+            if bundle.is_folder:
+                selected.addChildBundle(new_folder_bundle)
             else:
-                # If selected is at level one, add to root
-                if current_bundle.depth == 0:
-                    self.bnd.add_to_file_list(new_folder_bundle, True)
-                    self.treeWidget.addTopLevelItem(new_widget)
+                selected.getParent().addChildBundle(new_folder_bundle)
+
+    def get_addition_position(self, item):
+        """
+        Gets the good stuff
+        """
+
+        if not item:
+            # If no selection, add to root
+            return {"parent": self.treeWidget, "position": 0, "level": 0}
+        else:
+            bundle = item.bundle
+            if bundle.is_folder:
+                # If selected is a folder, add to selected with current level
+                return {"parent": item, "position": 0, "level": bundle.level}
+            else:
+                if bundle.depth == 0:
+                    # If selected is at level one, add to root
+                    return {"parent": self.treeWidget, "position": 0, "level": 0}
                 else:
-                    parent = current_bundle.parent
+                    parent = bundle.parent
                     if parent:
                         if parent == self.bnd:
-                            self.bnd.add_to_file_list(new_folder_bundle, True)
-                            self.treeWidget.addTopLevelItem(new_widget)
+                            # If the parent is the current BND, add to root
+                            return {
+                                "parent": self.treeWidget,
+                                "position": 0,
+                                "level": 0,
+                            }
                         else:
-                            new_folder_bundle.depth = parent.depth + 1
-                            new_folder_bundle.level = parent.level + 1
-                            parent.add_to_file_list(new_folder_bundle, True)
-                            selected.parent().addChild(new_widget)
+                            # If it isn't must be a folder, add to it
+                            return {
+                                "parent": item,
+                                "position": 0,
+                                "level": bundle.level,
+                            }
+                    else:
+                        # If nothing return nothing
+                        return {"parent": None, "position": None, "level": None}
 
     def delete_files(self):
         """
@@ -96,8 +118,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         for entry in self.get_selected_items():
             if entry:
-                entry.bundleItem.delete()
-                entry.bundleItem = None
+                entry.bundle.delete()
+                entry.bundle = None
                 entry_parent = entry.parent()
                 if entry_parent:
                     entry_parent.removeChild(entry)
@@ -111,7 +133,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         counter = 0
         for entry in self.get_selected_items():
-            item = entry.bundleItem
+            item = entry.bundle
             if not item.is_folder:
                 parent = item.parent
                 if parent:
@@ -133,7 +155,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Extracts one or multiple selected files in the file's folder
         """
         for item in self.get_selected_items():
-            self.extract_single_item(item.bundleItem)
+            self.extract_single_item(item.bundle)
         self.current_extracted_items.clear()
 
     def extract_single_item(self, bundle):
@@ -163,11 +185,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         selected_item = self.get_selected_item()
         if selected_item:
-            if (
-                not selected_item.bundleItem.is_raw
-                and not selected_item.bundleItem.is_folder
-            ):
-                self.bnd = selected_item.bundleItem
+            if not selected_item.bundle.is_raw and not selected_item.bundle.is_folder:
+                self.bnd = selected_item.bundle
                 self.reload_entries()
 
     def back_local_bnd(self):
@@ -201,7 +220,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.set_default_file_data_values()
             return
 
-        bundle = selected_item.bundleItem
+        bundle = selected_item.bundle
 
         if not bundle:
             self.set_default_file_data_values()
@@ -258,7 +277,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if (
             selection
             and len(selection) > 0
-            and isinstance(selection[0], QTreeWidgetBundleItem)
+            and isinstance(selection[0], QTreeWidgetItemBundle)
         ):
             return selection[0]
         else:
@@ -333,8 +352,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Add entries to tree widget
         for entry in self.bnd.file_list:
-            widget = QTreeWidgetBundleItem(entry, self.style())
-            self.treeWidget.addTopLevelItem(widget)
+            widget = QTreeWidgetItemBundle(entry, self.style())
+            self.treeWidget.addChildBundle(widget)
 
         # Enable buttons
         self.pb_back.setEnabled(self.bnd.has_parent())
@@ -353,29 +372,29 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Triggered when an item is modified
         """
-        if isinstance(item, QTreeWidgetBundleItem):
+        if isinstance(item, QTreeWidgetItemBundle):
             self.check_item_filename(item)
 
-    def check_item_filename(self, item: QTreeWidgetBundleItem):
+    def check_item_filename(self, item: QTreeWidgetItemBundle):
         """
         Check if the item filename is correct according to the file type
         """
         name = item.text(0)
-        if item.get_is_folder():
+        if item.bundle.is_folder():
             if not name.endswith("/"):
                 name += "/"
-        elif item.get_is_single_file():
+        elif item.bundle.is_single_file():
             if name != "[[ GZIPPED FILE ]]":
                 name = "[[ GZIPPED FILE ]]"
         else:
             self.set_item_name(item, name)
 
-    def set_item_name(self, item: QTreeWidgetBundleItem, text: str):
+    def set_item_name(self, item: QTreeWidgetItemBundle, text: str):
         """
         Updates item name, reloads entry data if the
         item is currently being selected
         """
         item.setText(0, text)
-        item.bundleItem.set_name(text)
+        item.bundle.set_name(text)
         if item == self.get_selected_item():
             self.update_current_entry_data()

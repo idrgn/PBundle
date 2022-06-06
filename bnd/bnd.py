@@ -256,9 +256,10 @@ class BND:
         Add item to file list
         """
         item.set_parent(self)
-        self.file_list.append(item)
-        if set_modified:
-            self.set_modified()
+        if item not in self.file_list:
+            self.file_list.append(item)
+            if set_modified:
+                self.set_modified()
 
     def get_crc(self):
         """
