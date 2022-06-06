@@ -29,11 +29,12 @@ class BND:
     ):
         self.file_list = []
 
-        # Will be used so only opened items
+        # So only opened items
         # will be processed
         self.is_modified = False
         self.raw_data = data
 
+        # Needed stuff for packing
         self.name = name
         self.depth = depth
         self.encrypted = encrypted
@@ -51,7 +52,11 @@ class BND:
             return
 
         # Default values
-        self.add_default_values()
+        self.version = None
+        self.value1 = None
+        self.value2 = None
+        self.empty_blocks = None
+        self.data = None
 
         # Read data
         self.read_from_file(data)
@@ -90,7 +95,8 @@ class BND:
         Updates name
         """
         self.name = name
-        self.set_modified()
+        if self.parent:
+            self.parent.set_modified()
 
     def get_root_parent(self):
         """
@@ -121,15 +127,6 @@ class BND:
             if not item.is_folder:
                 list.append(item.to_bytes())
         return list
-
-    def add_default_values(self):
-        """
-        Set default values for a BND file
-        """
-        self.version = None
-        self.value1 = None
-        self.value2 = None
-        self.empty_blocks = None
 
     def print_data(self):
         """
@@ -290,12 +287,12 @@ class BND:
                 self.is_single_file = True
 
         # If header is BND
-        if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
-
+        if not read_byte_array(data, 0x0, 0x4) == BND_HEADER:
+            self.is_raw = True
+        else:
             # Check if it's a header file
             # Checks if file data exists
             if read_uint(data, 0x14) >= len(data):
-                self.data = data
                 self.is_raw = True
                 return
 
@@ -432,11 +429,6 @@ class BND:
                     # Add offset
                     offset += 7 + len(file_name) + 1
 
-        # If not BND, raw
-        else:
-            self.data = data
-            self.is_raw = True
-
     def to_bytes(self, ignore_gzip: bool = False):
         """
         Generates bytes from file data
@@ -445,13 +437,9 @@ class BND:
         if self.is_folder:
             return b""
 
-        # If not modified
-        if not self.is_modified:
+        # If not modified or raw
+        if not self.is_modified or self.is_raw:
             return self.raw_data
-
-        # If raw just return own file
-        if self.is_raw:
-            return self.data
 
         # If single file
         if self.is_single_file:
