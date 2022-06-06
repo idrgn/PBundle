@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 
+import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
@@ -62,6 +63,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 entry_parent = entry.parent()
                 if entry_parent:
                     entry_parent.removeChild(entry)
+                else:
+                    sip.delete(entry)
 
     def replace_files(self):
         """
