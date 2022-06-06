@@ -21,6 +21,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.path = None
         self.setupUi(self)
         self.set_connections()
+        self.current_extracted_items = []
 
         # Delete temp
         shutil.rmtree(
@@ -52,6 +53,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         for item in self.get_selected_items():
             self.extract_single_item(item.bundleItem)
+        self.current_extracted_items.clear()
 
     def extract_single_item(self, bundle):
         """
@@ -62,17 +64,15 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 self.extract_single_item(child_bundle)
         else:
             internal_file_path = bundle.get_export_path(True)
-
-            complete_file_path = (
-                f"{self.output_path}/@{self.file_name}/{internal_file_path}"
-            )
-
-            os.makedirs(os.path.dirname(complete_file_path), exist_ok=True)
-
-            file_data = bundle.to_bytes()
-
-            with open(complete_file_path, "wb") as f:
-                f.write(file_data)
+            if internal_file_path not in self.current_extracted_items:
+                complete_file_path = (
+                    f"{self.output_path}/@{self.file_name}/{internal_file_path}"
+                )
+                os.makedirs(os.path.dirname(complete_file_path), exist_ok=True)
+                file_data = bundle.to_bytes()
+                with open(complete_file_path, "wb") as f:
+                    f.write(file_data)
+                self.current_extracted_items.append(complete_file_path)
 
     def open_local_bnd(self):
         """

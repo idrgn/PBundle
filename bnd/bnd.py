@@ -183,16 +183,16 @@ class BND:
         """
         name = self.name
 
+        # If noit folder, add slash
+        if not self.is_folder:
+            if not base:
+                name = "@" + name + "/"
+
         # If has parent, add parent name
         if self.parent:
             name = self.parent.get_export_path() + name
         else:
             return ""
-
-        # If noit folder, add slash
-        if not self.is_folder:
-            if not base:
-                name = name + "/"
 
         return name
 
