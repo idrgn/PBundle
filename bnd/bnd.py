@@ -76,7 +76,11 @@ class BND:
         self.is_single_file = False
 
         # Default values
-        self.add_default_values()
+        self.version = None
+        self.value1 = None
+        self.value2 = None
+        self.empty_blocks = None
+        self.data = None
 
         # Read
         self.read_from_file(data)
@@ -247,12 +251,14 @@ class BND:
             else:
                 return self.parent.get_local_path() + self.name
 
-    def add_to_file_list(self, item: object):
+    def add_to_file_list(self, item: object, set_modified: bool = False):
         """
         Add item to file list
         """
         item.set_parent(self)
         self.file_list.append(item)
+        if set_modified:
+            self.set_modified()
 
     def get_crc(self):
         """

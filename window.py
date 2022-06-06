@@ -48,8 +48,46 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_extract_file.clicked.connect(self.extract_file)
         self.pb_replace_file.clicked.connect(self.replace_files)
         self.pb_delete_file.clicked.connect(self.delete_files)
+        self.pb_add_folder.clicked.connect(self.add_folder)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
         self.treeWidget.itemChanged.connect(self.item_changed)
+
+    def add_folder(self):
+        """
+        Adds a new folder
+        TODO: Make sure that everything works fine
+        """
+        selected = self.get_selected_item()
+        new_folder_bundle = BND(name="new folder/", depth=1, is_folder=True, level=1)
+        new_widget = QTreeWidgetBundleItem(new_folder_bundle, self.style())
+
+        # If not selected, add to root
+        if not selected:
+            self.bnd.add_to_file_list(new_folder_bundle, True)
+            self.treeWidget.addTopLevelItem(new_widget)
+        else:
+            current_bundle = selected.bundleItem
+            # If selected is a folder, add to selected with current level
+            if current_bundle.is_folder:
+                new_folder_bundle.depth = current_bundle.depth + 1
+                new_folder_bundle.level = current_bundle.level + 1
+                selected.addChild(new_widget)
+            else:
+                # If selected is at level one, add to root
+                if current_bundle.depth == 0:
+                    self.bnd.add_to_file_list(new_folder_bundle, True)
+                    self.treeWidget.addTopLevelItem(new_widget)
+                else:
+                    parent = current_bundle.parent
+                    if parent:
+                        if parent == self.bnd:
+                            self.bnd.add_to_file_list(new_folder_bundle, True)
+                            self.treeWidget.addTopLevelItem(new_widget)
+                        else:
+                            new_folder_bundle.depth = parent.depth + 1
+                            new_folder_bundle.level = parent.level + 1
+                            parent.add_to_file_list(new_folder_bundle, True)
+                            selected.parent().addChild(new_widget)
 
     def delete_files(self):
         """
@@ -301,7 +339,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         # Enable buttons
         self.pb_back.setEnabled(self.bnd.has_parent())
         # self.pb_add_file.setEnabled(True)
-        # self.pb_add_folder.setEnabled(True)
+        self.pb_add_folder.setEnabled(True)
         self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
         self.pb_replace_file.setEnabled(True)
