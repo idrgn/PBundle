@@ -55,8 +55,25 @@ class BND:
         else:
             self.read_from_file(data)
 
-        # Print data
-        # self.print_data()
+    def update_data(self, data: bytes = [], encrypted: bool = False):
+        """
+        Updates data
+        """
+        self.file_list = []
+        self.encrypted = encrypted
+
+        # Is raw
+        self.is_raw = False
+
+        # Gzipped or single BND
+        self.is_gzipped = False
+        self.is_single_file = False
+
+        # Default values
+        self.add_default_values()
+
+        # Read
+        self.read_from_file(data)
 
     def get_root_parent(self):
         """

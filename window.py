@@ -45,11 +45,36 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
         self.pb_extract_file.clicked.connect(self.extract_file)
+        self.pb_replace_file.clicked.connect(self.replace_files)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
+
+    def replace_files(self):
+        """
+        Triggered when the Replace Files button is pressed
+        Opens a window to replace one or mutiple files
+        """
+        counter = 0
+        for entry in self.get_selected_items():
+            item = entry.bundleItem
+            if not item.is_folder:
+                parent = item.parent
+                if parent:
+                    input_file = QtWidgets.QFileDialog.getOpenFileName(
+                        self,
+                        f"Select file to replace file {counter + 1}: {item.get_local_path()}",
+                    )
+                    if input_file and len(input_file) > 0 and input_file[0]:
+                        with open(input_file[0], "r+b") as f:
+                            data = f.read()
+                            item.update_data(data)
+                    counter += 1
+        if counter > 0:
+            self.update_current_entry_data()
 
     def extract_file(self):
         """
-        Extracts selected files
+        Triggered when the Extract Files button is pressed
+        Extracts one or multiple selected files in the file's folder
         """
         for item in self.get_selected_items():
             self.extract_single_item(item.bundleItem)
@@ -57,7 +82,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
     def extract_single_item(self, bundle):
         """
-        Extracts single bundle item
+        Extracts single bundle item, for folders
+        it also extracts all its children items
         """
         if bundle.is_folder:
             for child_bundle in bundle.file_list:
@@ -76,7 +102,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
     def open_local_bnd(self):
         """
-        Open BND inside the current BND
+        Triggered when the Open local BND file button is pressed
+        Opens a BND inside the current BND
         """
         selected_item = self.get_selected_item()
         if selected_item:
@@ -89,6 +116,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
     def back_local_bnd(self):
         """
+        Triggered when the Back to previous file button is pressed
         Returns to parent BND
         """
         self.bnd = self.bnd.get_parent()
@@ -103,44 +131,49 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         selected_item = self.get_selected_item()
         if selected_item:
-            bundle = selected_item.bundleItem
-            if not bundle.is_raw and not bundle.is_folder:
-                self.pb_open.setEnabled(True)
-            else:
-                self.pb_open.setEnabled(False)
-
-            # CRC text
-            self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
-            self.le_crc.setToolTip(f"File: {bundle.get_local_path()}")
-
-            # CRC tooltip
-            to_bytes = bundle.to_bytes(ignore_gzip=True)
-            self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
-            self.le_size.setToolTip(f"Size (ungzipped): {len(to_bytes)} bytes")
-
-            # Unknown
-            self.te_preview.setText("")
-
-            # Hex view
-            # TODO: Update on thread
-            if len(to_bytes) > 0:
-                string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
-
-                string = " ".join(string[i : i + 2] for i in range(0, len(string), 2))
-                string = "\n".join(
-                    string[i : i + 24] for i in range(0, len(string), 24)
-                )
-                lines = string.splitlines()
-                self.te_preview.append("\n")
-                counter = 0
-                for line in lines:
-                    line = "{0:#0{1}x}".format(counter * 8, 4) + " " + line
-                    self.te_preview.append(line)
-                    self.te_preview.setAlignment(QtCore.Qt.AlignLeft)
-                    counter += 1
+            self.update_current_entry_data()
 
         else:
             self.pb_open.setEnabled(False)
+
+    def update_current_entry_data(self):
+        """
+        Updates current data
+        """
+        selected_item = self.get_selected_item()
+        bundle = selected_item.bundleItem
+        if not bundle.is_raw and not bundle.is_folder:
+            self.pb_open.setEnabled(True)
+        else:
+            self.pb_open.setEnabled(False)
+
+        # CRC text
+        self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
+        self.le_crc.setToolTip(f"File: {bundle.get_local_path()}")
+
+        # CRC tooltip
+        to_bytes = bundle.to_bytes(ignore_gzip=True)
+        self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
+        self.le_size.setToolTip(f"Size (ungzipped): {len(to_bytes)} bytes")
+
+        # Unknown
+        self.te_preview.setText("")
+
+        # Hex view
+        # TODO: Update on thread
+        if len(to_bytes) > 0:
+            string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
+
+            string = " ".join(string[i : i + 2] for i in range(0, len(string), 2))
+            string = "\n".join(string[i : i + 24] for i in range(0, len(string), 24))
+            lines = string.splitlines()
+            self.te_preview.append("\n")
+            counter = 0
+            for line in lines:
+                line = "{0:#0{1}x}".format(counter * 8, 4) + " " + line
+                self.te_preview.append(line)
+                self.te_preview.setAlignment(QtCore.Qt.AlignLeft)
+                counter += 1
 
     def get_selected_item(self):
         """
@@ -226,13 +259,13 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Enable buttons
         self.pb_back.setEnabled(self.bnd.has_parent())
-        self.pb_add_file.setEnabled(True)
-        self.pb_add_folder.setEnabled(True)
-        self.pb_delete_file.setEnabled(True)
+        # self.pb_add_file.setEnabled(True)
+        # self.pb_add_folder.setEnabled(True)
+        # self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
         self.pb_replace_file.setEnabled(True)
-        self.pb_movedown.setEnabled(True)
-        self.pb_moveup.setEnabled(True)
+        # self.pb_movedown.setEnabled(True)
+        # self.pb_moveup.setEnabled(True)
 
         # Change title
         self.treeWidget.setHeaderLabel(self.bnd.get_full_path())
