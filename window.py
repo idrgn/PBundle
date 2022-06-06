@@ -1,4 +1,5 @@
 import binascii
+import os
 import shutil
 import sys
 import tempfile
@@ -42,7 +43,36 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.action_save.triggered.connect(self.save_bnd_file)
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
+        self.pb_extract_file.clicked.connect(self.extract_file)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
+
+    def extract_file(self):
+        """
+        Extracts selected files
+        """
+        for item in self.get_selected_items():
+            self.extract_single_item(item.bundleItem)
+
+    def extract_single_item(self, bundle):
+        """
+        Extracts single bundle item
+        """
+        if bundle.is_folder:
+            for child_bundle in bundle.file_list:
+                self.extract_single_item(child_bundle)
+        else:
+            internal_file_path = bundle.get_export_path(True)
+
+            complete_file_path = (
+                f"{self.output_path}/@{self.file_name}/{internal_file_path}"
+            )
+
+            os.makedirs(os.path.dirname(complete_file_path), exist_ok=True)
+
+            file_data = bundle.to_bytes()
+
+            with open(complete_file_path, "wb") as f:
+                f.write(file_data)
 
     def open_local_bnd(self):
         """
@@ -170,6 +200,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.path = file
             self.bnd = BND(data)
             self.reload_entries()
+            self.output_path = os.path.dirname(os.path.abspath(self.path))
+            self.file_name = os.path.basename(os.path.abspath(self.path))
 
     def save_bnd_file(self):
         """
