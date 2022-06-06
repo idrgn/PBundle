@@ -20,7 +20,7 @@ class BND:
 
     def __init__(
         self,
-        data: bytes = [],
+        data: bytes = b"",
         name: str = "",
         depth: int = 0,
         encrypted: bool = False,
@@ -31,7 +31,8 @@ class BND:
 
         # Will be used so only opened items
         # will be processed
-        self.is_initted = False
+        self.is_modified = False
+        self.raw_data = data
 
         self.name = name
         self.depth = depth
@@ -74,12 +75,22 @@ class BND:
 
         # Read
         self.read_from_file(data)
+        self.set_modified()
+
+    def set_modified(self):
+        """
+        Sets as modified
+        """
+        self.is_modified = True
+        if self.parent:
+            self.parent.set_modified()
 
     def set_name(self, name: str):
         """
         Updates name
         """
         self.name = name
+        self.set_modified()
 
     def get_root_parent(self):
         """
@@ -115,7 +126,6 @@ class BND:
         """
         Set default values for a BND file
         """
-        self.raw_data = None
         self.version = None
         self.value1 = None
         self.value2 = None
@@ -431,13 +441,17 @@ class BND:
         """
         Generates bytes from file data
         """
-        # If raw just return own file
-        if self.is_raw:
-            return self.data
-
         # If folder return empty
         if self.is_folder:
             return b""
+
+        # If not modified
+        if not self.is_modified:
+            return self.raw_data
+
+        # If raw just return own file
+        if self.is_raw:
+            return self.data
 
         # If single file
         if self.is_single_file:
