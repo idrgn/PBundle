@@ -241,9 +241,9 @@ class BND:
         if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
 
             # Read all the header values
-            self.version = read_uchar(data, 0x04)
-            self.value1 = read_uchar(data, 0x08)
-            self.value2 = read_uchar(data, 0x0C)
+            self.version = read_uint(data, 0x04)
+            self.value1 = read_uint(data, 0x08)
+            self.value2 = read_uint(data, 0x0C)
             info = read_uint(data, 0x10)
 
             # Checks all the empty blocks
@@ -401,7 +401,7 @@ class BND:
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
 
-        # TODO: Check value1 not being written properly
+        # Header values
         file += pack(
             "IIII",
             self.version,
@@ -454,7 +454,7 @@ class BND:
             file += pack("I", item["size"])
 
         # === SECTION: FILE INFO
-        previous_entry_length = 255
+        previous_entry_length = -1
         current_data_address = 0
         data_address_list = []
 
@@ -499,7 +499,7 @@ class BND:
             file = replace_byte_array(file, address + 0x4, pack("I", len(file)))
 
             # Entry depth level + previous entry data length (0xFF if first one)
-            file += pack("bB", entry.level, previous_entry_length)
+            file += pack("bb", entry.level, previous_entry_length)
 
             # Current entry data length
             file += pack("B", current_entry_length)
