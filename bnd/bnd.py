@@ -8,7 +8,6 @@ from data import (
     read_byte_array,
     read_char,
     read_str,
-    read_uchar,
     read_uint,
     replace_byte_array,
 )
@@ -29,11 +28,20 @@ class BND:
         level: int = None,
     ):
         self.file_list = []
+
+        # Will be used so only opened items
+        # will be processed
+        self.is_initted = False
+
         self.name = name
         self.depth = depth
         self.encrypted = encrypted
         self.parent = None
         self.level = level
+
+        # Gzipped or single BND
+        self.is_gzipped = False
+        self.is_single_file = False
 
         # Is folder
         self.is_folder = is_folder
@@ -41,19 +49,11 @@ class BND:
         if self.is_folder:
             return
 
-        # Gzipped or single BND
-        self.is_gzipped = False
-        self.is_single_file = False
-
         # Default values
         self.add_default_values()
 
-        # Ignore DATAMS.HED
-        if name == "datams.hed":
-            self.is_raw = True
-            self.data = data
-        else:
-            self.read_from_file(data)
+        # Read data
+        self.read_from_file(data)
 
     def update_data(self, data: bytes = [], encrypted: bool = False):
         """
@@ -74,6 +74,12 @@ class BND:
 
         # Read
         self.read_from_file(data)
+
+    def set_name(self, name: str):
+        """
+        Updates name
+        """
+        self.name = name
 
     def get_root_parent(self):
         """
@@ -275,6 +281,13 @@ class BND:
 
         # If header is BND
         if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
+
+            # Check if it's a header file
+            # Checks if file data exists
+            if read_uint(data, 0x14) >= len(data):
+                self.data = data
+                self.is_raw = True
+                return
 
             # Read all the header values
             self.version = read_uint(data, 0x04)

@@ -47,6 +47,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_extract_file.clicked.connect(self.extract_file)
         self.pb_replace_file.clicked.connect(self.replace_files)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
+        self.treeWidget.itemChanged.connect(self.item_changed)
 
     def replace_files(self):
         """
@@ -132,7 +133,6 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         selected_item = self.get_selected_item()
         if selected_item:
             self.update_current_entry_data()
-
         else:
             self.pb_open.setEnabled(False)
 
@@ -180,7 +180,11 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Gets first selected item
         """
         selection = self.treeWidget.selectedItems()
-        if selection:
+        if (
+            selection
+            and len(selection) > 0
+            and isinstance(selection[0], QTreeWidgetBundleItem)
+        ):
             return selection[0]
         else:
             return None
@@ -269,3 +273,34 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Change title
         self.treeWidget.setHeaderLabel(self.bnd.get_full_path())
+
+    def item_changed(self, item):
+        """
+        Triggered when an item is modified
+        """
+        if isinstance(item, QTreeWidgetBundleItem):
+            self.check_item_filename(item)
+
+    def check_item_filename(self, item: QTreeWidgetBundleItem):
+        """
+        Check if the item filename is correct according to the file type
+        """
+        name = item.text(0)
+        if item.get_is_folder():
+            if not name.endswith("/"):
+                name += "/"
+        elif item.get_is_single_file():
+            if name != "[[ GZIPPED FILE ]]":
+                name = "[[ GZIPPED FILE ]]"
+        else:
+            self.set_item_name(item, name)
+
+    def set_item_name(self, item: QTreeWidgetBundleItem, text: str):
+        """
+        Updates item name, reloads entry data if the
+        item is currently being selected
+        """
+        item.setText(0, text)
+        item.bundleItem.set_name(text)
+        if item == self.get_selected_item():
+            self.update_current_entry_data()
