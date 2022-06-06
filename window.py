@@ -46,8 +46,22 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_back.clicked.connect(self.back_local_bnd)
         self.pb_extract_file.clicked.connect(self.extract_file)
         self.pb_replace_file.clicked.connect(self.replace_files)
+        self.pb_delete_file.clicked.connect(self.delete_files)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
         self.treeWidget.itemChanged.connect(self.item_changed)
+
+    def delete_files(self):
+        """
+        Triggered when the Delete Files button is pressed
+        Deletes one or multiple files or folders
+        """
+        for entry in self.get_selected_items():
+            if entry:
+                entry.bundleItem.delete()
+                entry.bundleItem = None
+                entry_parent = entry.parent()
+                if entry_parent:
+                    entry_parent.removeChild(entry)
 
     def replace_files(self):
         """
@@ -141,7 +155,17 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Updates current data
         """
         selected_item = self.get_selected_item()
+
+        if not selected_item:
+            self.set_default_file_data_values()
+            return
+
         bundle = selected_item.bundleItem
+
+        if not bundle:
+            self.set_default_file_data_values()
+            return
+
         if not bundle.is_raw and not bundle.is_folder:
             self.pb_open.setEnabled(True)
         else:
@@ -156,7 +180,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
         self.le_size.setToolTip(f"Size (ungzipped): {len(to_bytes)} bytes")
 
-        # Unknown
+        # Set empty
         self.te_preview.setText("")
 
         # Hex view
@@ -174,6 +198,16 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 self.te_preview.append(line)
                 self.te_preview.setAlignment(QtCore.Qt.AlignLeft)
                 counter += 1
+
+    def set_default_file_data_values(self):
+        """
+        Sets default file data values
+        """
+        self.te_preview.setText("")
+        self.le_crc.setText("CRC")
+        self.le_crc.setToolTip("None")
+        self.le_size.setText("Size")
+        self.le_size.setToolTip(f"None")
 
     def get_selected_item(self):
         """
@@ -265,7 +299,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_back.setEnabled(self.bnd.has_parent())
         # self.pb_add_file.setEnabled(True)
         # self.pb_add_folder.setEnabled(True)
-        # self.pb_delete_file.setEnabled(True)
+        self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
         self.pb_replace_file.setEnabled(True)
         # self.pb_movedown.setEnabled(True)

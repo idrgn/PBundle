@@ -82,6 +82,15 @@ class BND:
         self.read_from_file(data)
         self.set_modified()
 
+    def delete(self):
+        """
+        Deletes itself
+        """
+        if self.parent:
+            self.parent.set_modified()
+            self.parent.file_list.remove(self)
+            del self
+
     def set_modified(self):
         """
         Sets as modified
