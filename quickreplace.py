@@ -1,15 +1,6 @@
-import binascii
 from genericpath import exists
-import shutil
-import sys
-import tempfile
-
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
-from data import *
-from interface import main_window
-from interface.tree_bundle_item import QTreeWidgetBundleItem
 
 
 # -qr "test/DATA_CMN.BND.out" "test/source_file.txt" "actor/reload/tips/tips121.bnd/actorparam.dat"
