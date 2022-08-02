@@ -8,7 +8,6 @@ from data import (
     read_byte_array,
     read_char,
     read_str,
-    read_uchar,
     read_uint,
     replace_byte_array,
 )
@@ -21,7 +20,7 @@ class BND:
 
     def __init__(
         self,
-        data: bytes = [],
+        data: bytes = b"",
         name: str = "",
         depth: int = 0,
         encrypted: bool = False,
@@ -29,17 +28,48 @@ class BND:
         level: int = None,
     ):
         self.file_list = []
+
+        # So only opened items
+        # will be processed
+        self.is_modified = False
+        self.raw_data = data
+
+        # Needed stuff for packing
         self.name = name
         self.depth = depth
         self.encrypted = encrypted
         self.parent = None
         self.level = level
 
+        # Gzipped or single BND
+        self.is_gzipped = False
+        self.is_single_file = False
+
         # Is folder
         self.is_folder = is_folder
         self.is_raw = False
         if self.is_folder:
             return
+
+        # Default values
+        self.version = None
+        self.value1 = None
+        self.value2 = None
+        self.empty_blocks = None
+        self.data = None
+
+        # Read data
+        self.read_from_file(data)
+
+    def update_data(self, data: bytes = [], encrypted: bool = False):
+        """
+        Updates data
+        """
+        self.file_list = []
+        self.encrypted = encrypted
+
+        # Is raw
+        self.is_raw = False
 
         # Gzipped or single BND
         self.is_gzipped = False
@@ -48,15 +78,34 @@ class BND:
         # Default values
         self.add_default_values()
 
-        # Ignore DATAMS.HED
-        if name == "datams.hed":
-            self.is_raw = True
-            self.data = data
-        else:
-            self.read_from_file(data)
+        # Read
+        self.read_from_file(data)
+        self.set_modified()
 
-        # Print data
-        # self.print_data()
+    def delete(self):
+        """
+        Deletes itself
+        """
+        if self.parent:
+            self.parent.set_modified()
+            self.parent.file_list.remove(self)
+            del self
+
+    def set_modified(self):
+        """
+        Sets as modified
+        """
+        self.is_modified = True
+        if self.parent:
+            self.parent.set_modified()
+
+    def set_name(self, name: str):
+        """
+        Updates name
+        """
+        self.name = name
+        if self.parent:
+            self.parent.set_modified()
 
     def get_root_parent(self):
         """
@@ -87,16 +136,6 @@ class BND:
             if not item.is_folder:
                 list.append(item.to_bytes())
         return list
-
-    def add_default_values(self):
-        """
-        Set default values for a BND file
-        """
-        self.raw_data = None
-        self.version = None
-        self.value1 = None
-        self.value2 = None
-        self.empty_blocks = None
 
     def print_data(self):
         """
@@ -207,6 +246,25 @@ class BND:
 
         return name
 
+    def get_export_path(self, base: bool = False):
+        """
+        Generates path for file exporting
+        """
+        name = self.name
+
+        # If noit folder, add slash
+        if not self.is_folder:
+            if not base:
+                name = "@" + name + "/"
+
+        # If has parent, add parent name
+        if self.parent:
+            name = self.parent.get_export_path() + name
+        else:
+            return ""
+
+        return name
+
     def get_local_path(self):
         """
         Return local path
@@ -268,12 +326,19 @@ class BND:
                 self.is_single_file = True
 
         # If header is BND
-        if read_byte_array(data, 0x0, 0x4) == BND_HEADER:
+        if not read_byte_array(data, 0x0, 0x4) == BND_HEADER:
+            self.is_raw = True
+        else:
+            # Check if it's a header file
+            # Checks if file data exists
+            if read_uint(data, 0x14) >= len(data):
+                self.is_raw = True
+                return
 
             # Read all the header values
-            self.version = read_uchar(data, 0x04)
-            self.value1 = read_uchar(data, 0x08)
-            self.value2 = read_uchar(data, 0x0C)
+            self.version = read_uint(data, 0x04)
+            self.value1 = read_uint(data, 0x08)
+            self.value2 = read_uint(data, 0x0C)
             info = read_uint(data, 0x10)
 
             # Checks all the empty blocks
@@ -403,22 +468,17 @@ class BND:
                     # Add offset
                     offset += 7 + len(file_name) + 1
 
-        # If not BND, raw
-        else:
-            self.data = data
-            self.is_raw = True
-
     def to_bytes(self, ignore_gzip: bool = False):
         """
         Generates bytes from file data
         """
-        # If raw just return own file
-        if self.is_raw:
-            return self.data
-
         # If folder return empty
         if self.is_folder:
             return b""
+
+        # If not modified or raw
+        if not self.is_modified or self.is_raw:
+            return self.raw_data
 
         # If single file
         if self.is_single_file:
@@ -431,7 +491,7 @@ class BND:
         file_count = self.get_file_count()
         file = BND_HEADER  # 0x0
 
-        # TODO: Check value1 not being written properly
+        # Header values
         file += pack(
             "IIII",
             self.version,
@@ -484,7 +544,7 @@ class BND:
             file += pack("I", item["size"])
 
         # === SECTION: FILE INFO
-        previous_entry_length = 255
+        previous_entry_length = -1
         current_data_address = 0
         data_address_list = []
 
@@ -529,7 +589,7 @@ class BND:
             file = replace_byte_array(file, address + 0x4, pack("I", len(file)))
 
             # Entry depth level + previous entry data length (0xFF if first one)
-            file += pack("bB", entry.level, previous_entry_length)
+            file += pack("bb", entry.level, previous_entry_length)
 
             # Current entry data length
             file += pack("B", current_entry_length)

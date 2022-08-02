@@ -34,3 +34,15 @@ class QTreeWidgetBundleItem(QTreeWidgetItem):
         """
         for item in self.bundleItem.file_list:
             self.addChild(QTreeWidgetBundleItem(item, self.style))
+
+    def get_is_folder(self):
+        """
+        Returns True if the item is a folder
+        """
+        return self.bundleItem.is_folder
+
+    def get_is_single_file(self):
+        """
+        Returns True if the item is a single file
+        """
+        return self.bundleItem.is_single_file
