@@ -66,6 +66,7 @@ class BND:
         Updates data
         """
         self.file_list = []
+        self.raw_data = data
         self.encrypted = encrypted
 
         # Is raw
@@ -74,9 +75,6 @@ class BND:
         # Gzipped or single BND
         self.is_gzipped = False
         self.is_single_file = False
-
-        # Default values
-        self.add_default_values()
 
         # Read
         self.read_from_file(data)
@@ -182,13 +180,8 @@ class BND:
         return count
 
     def get_bundle_from_filename_array(self, filename_array):
-        """_summary_
-
-        Args:
-            filename_array (_type_): _description_
-
-        Returns:
-            _type_: _description_
+        """
+        Returns bundle from filename array
         """
 
         # Return None if array is empty
@@ -200,7 +193,6 @@ class BND:
 
             # Check all bundles
             for bundle in self.file_list:
-                print(" -", bundle.name)
                 if bundle.name.strip("/") == current_filename:
                     if len(filename_array) == 1:
                         return bundle

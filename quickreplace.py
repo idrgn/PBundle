@@ -37,3 +37,13 @@ def quick_replace(bnd_file_path, source_file_path, destination):
             return
 
         # Replace
+        with open(source_file_path, "r+b") as s:
+            source_data = s.read()
+            destination_file.update_data(source_data)
+
+        # Return to bytes
+        data = bnd_file.to_bytes()
+
+    # Write bytes
+    with open(bnd_file_path, "wb") as f:
+        f.write(data)
