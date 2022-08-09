@@ -1,3 +1,4 @@
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -25,6 +26,8 @@ def resource_path(relative_path: str) -> Path:
     current_path = Path(".")
     if hasattr(sys, "_MEIPASS"):
         current_path = Path(sys._MEIPASS)
+    else:
+        current_path = Path(os.path.dirname(__file__))
     return current_path.joinpath(relative_path)
 
 

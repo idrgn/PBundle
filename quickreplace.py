@@ -3,8 +3,14 @@ from genericpath import exists
 from bnd.bnd import BND
 
 
-# -qr "test/DATA_CMN.BND.out" "test/source_file.txt" "actor/reload/tips/tips121.bnd/actorparam.dat"
 def quick_replace(bnd_file_path, source_file_path, destination):
+    """_summary_
+
+    Args:
+        bnd_file_path (_type_): _description_
+        source_file_path (_type_): _description_
+        destination (_type_): _description_
+    """
     print(
         "Replacing file", destination, "inside", bnd_file_path, "with", source_file_path
     )
