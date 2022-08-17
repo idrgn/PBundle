@@ -104,7 +104,9 @@ class Ui_MainWindow(object):
         self.le_size.setAcceptDrops(False)
         self.le_size.setToolTip("<html><head/><body><p>None</p></body></html>")
         self.le_size.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.le_size.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.le_size.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.le_size.setReadOnly(True)
         self.le_size.setObjectName("le_size")
         self.le_crc = QtWidgets.QLineEdit(self.centralwidget)
@@ -143,7 +145,9 @@ class Ui_MainWindow(object):
         self.le_crc.setAcceptDrops(False)
         self.le_crc.setToolTip("<html><head/><body><p>None</p></body></html>")
         self.le_crc.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.le_crc.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.le_crc.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.le_crc.setReadOnly(True)
         self.le_crc.setObjectName("le_crc")
         self.text_size = QtWidgets.QLabel(self.centralwidget)
@@ -189,7 +193,9 @@ class Ui_MainWindow(object):
         self.pb_open = QtWidgets.QPushButton(self.centralwidget)
         self.pb_open.setEnabled(False)
         self.pb_open.setGeometry(QtCore.QRect(790, 250, 171, 31))
-        self.pb_open.setToolTip("<html><head/><body><p>Open a bnd or gzipped file inside the current file</p></body></html>")
+        self.pb_open.setToolTip(
+            "<html><head/><body><p>Open a bnd or gzipped file inside the current file</p></body></html>"
+        )
         self.pb_open.setCheckable(False)
         self.pb_open.setObjectName("pb_open")
         self.l2 = QtWidgets.QFrame(self.centralwidget)
@@ -213,7 +219,9 @@ class Ui_MainWindow(object):
         self.pb_back = QtWidgets.QPushButton(self.centralwidget)
         self.pb_back.setEnabled(False)
         self.pb_back.setGeometry(QtCore.QRect(790, 290, 171, 31))
-        self.pb_back.setToolTip("<html><head/><body><p>Return back to the previous file. Changes are only applied if the current file is saved.</p></body></html>")
+        self.pb_back.setToolTip(
+            "<html><head/><body><p>Return back to the previous file. Changes are only applied if the current file is saved.</p></body></html>"
+        )
         self.pb_back.setObjectName("pb_back")
         self.l3 = QtWidgets.QFrame(self.centralwidget)
         self.l3.setGeometry(QtCore.QRect(790, 330, 171, 20))
@@ -260,7 +268,9 @@ class Ui_MainWindow(object):
         font.setWeight(50)
         self.te_preview.setFont(font)
         self.te_preview.setAcceptDrops(False)
-        self.te_preview.setToolTip("<html><head/><body><p>Files that start with <span style=\" font-weight:600;\">42 4E 44</span> are bnd files. Files that start with <span style=\" font-weight:600;\">1F 0B 08</span> are gzipped files.</p></body></html>")
+        self.te_preview.setToolTip(
+            '<html><head/><body><p>Files that start with <span style=" font-weight:600;">42 4E 44</span> are bnd files. Files that start with <span style=" font-weight:600;">1F 0B 08</span> are gzipped files.</p></body></html>'
+        )
         self.te_preview.setUndoRedoEnabled(False)
         self.te_preview.setReadOnly(True)
         self.te_preview.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
@@ -315,10 +325,14 @@ class Ui_MainWindow(object):
         self.action_save_as.setObjectName("action_save_as")
         self.action_disable_filesystem_and_save = QtWidgets.QAction(MainWindow)
         self.action_disable_filesystem_and_save.setEnabled(False)
-        self.action_disable_filesystem_and_save.setObjectName("action_disable_filesystem_and_save")
+        self.action_disable_filesystem_and_save.setObjectName(
+            "action_disable_filesystem_and_save"
+        )
         self.action_overwrite_all_filenames = QtWidgets.QAction(MainWindow)
         self.action_overwrite_all_filenames.setEnabled(False)
-        self.action_overwrite_all_filenames.setObjectName("action_overwrite_all_filenames")
+        self.action_overwrite_all_filenames.setObjectName(
+            "action_overwrite_all_filenames"
+        )
         self.action_about = QtWidgets.QAction(MainWindow)
         self.action_about.setObjectName("action_about")
         self.check_reload_on_save = QtWidgets.QAction(MainWindow)
@@ -358,7 +372,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Patapon BND Editor"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "PBundle"))
         self.treeWidget.setSortingEnabled(False)
         self.pb_delete_file.setText(_translate("MainWindow", "Delete file(s)"))
         self.pb_add_file.setText(_translate("MainWindow", "Add file(s)"))
@@ -375,11 +389,16 @@ class Ui_MainWindow(object):
         self.pb_moveup.setText(_translate("MainWindow", "Move up"))
         self.pb_back.setText(_translate("MainWindow", "Back to previous file (←)"))
         self.pb_back.setShortcut(_translate("MainWindow", "Left"))
-        self.te_preview.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Roboto Mono\'; font-size:7pt; font-weight:400; font-style:normal;\">\n"
-"<p align=\"center\" style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'MS Shell Dlg 2\'; font-size:8.25pt;\"><br /></p></body></html>"))
+        self.te_preview.setHtml(
+            _translate(
+                "MainWindow",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '<html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "p, li { white-space: pre-wrap; }\n"
+                "</style></head><body style=\" font-family:'Roboto Mono'; font-size:7pt; font-weight:400; font-style:normal;\">\n"
+                '<p align="center" style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'MS Shell Dlg 2\'; font-size:8.25pt;"><br /></p></body></html>',
+            )
+        )
         self.le_preview.setText(_translate("MainWindow", "Preview (first 0x70 bytes)"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
@@ -393,17 +412,28 @@ class Ui_MainWindow(object):
         self.action_refresh.setShortcut(_translate("MainWindow", "F5"))
         self.action_exit.setText(_translate("MainWindow", "Exit"))
         self.action_save_as.setText(_translate("MainWindow", "Save as"))
-        self.action_disable_filesystem_and_save.setText(_translate("MainWindow", "Disable filesystem and save"))
-        self.action_overwrite_all_filenames.setText(_translate("MainWindow", "Overwrite all filenames"))
+        self.action_disable_filesystem_and_save.setText(
+            _translate("MainWindow", "Disable filesystem and save")
+        )
+        self.action_overwrite_all_filenames.setText(
+            _translate("MainWindow", "Overwrite all filenames")
+        )
         self.action_about.setText(_translate("MainWindow", "About"))
         self.check_reload_on_save.setText(_translate("MainWindow", "Reload on save"))
-        self.check_extended_backup_files.setText(_translate("MainWindow", "Disable backups"))
-        self.check_encryption_decryption.setText(_translate("MainWindow", "Encryption / decryption"))
-        self.check_external_header_file.setText(_translate("MainWindow", "External header file"))
+        self.check_extended_backup_files.setText(
+            _translate("MainWindow", "Disable backups")
+        )
+        self.check_encryption_decryption.setText(
+            _translate("MainWindow", "Encryption / decryption")
+        )
+        self.check_external_header_file.setText(
+            _translate("MainWindow", "External header file")
+        )
 
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
