@@ -68,10 +68,13 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.bnd.add_to_file_list(new_folder_bundle, True)
             self.treeWidget.addChildBundle(new_widget)
         else:
-            bundle = selected.bundle
-            if bundle.is_folder:
+            if selected.bundle.is_folder:
+                new_folder_bundle.level = selected.bundle.level + 1
+                selected.bundle.add_to_file_list(new_folder_bundle, True)
                 selected.addChildBundle(new_folder_bundle)
             else:
+                new_folder_bundle.level = selected.getParent().bundle.level + 1
+                selected.getParent().bundle.add_to_file_list(new_folder_bundle, True)
                 selected.getParent().addChildBundle(new_folder_bundle)
 
     def get_addition_position(self, item):
