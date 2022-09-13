@@ -118,7 +118,7 @@ class BND:
         if self.parent is None:
             return self
         else:
-            return self.get_root_parent()
+            return self.parent.get_root_parent()
 
     def get_depth_file_list(self):
         """
@@ -251,27 +251,30 @@ class BND:
             else:
                 return self.parent.get_local_path() + self.name
 
-    def add_to_file_list(self, item: object, set_modified: bool = False):
+    def add_to_file_list(
+        self, item: object, set_modified: bool = False, overwrite_level: bool = False
+    ):
         """
         Add item to file list
         """
 
         item.set_parent(self)
 
-        if self.is_folder:
-            if item.is_folder:
-                item.level = self.level + 1
-                item.depth = self.depth + 1
+        if overwrite_level:
+            if self.is_folder:
+                if item.is_folder:
+                    item.level = self.level + 1
+                    item.depth = self.depth + 1
+                else:
+                    item.level = (self.level + 1) * -1
+                    item.depth = (self.depth + 1) * -1
             else:
-                item.level = (self.level + 1) * -1
-                item.depth = (self.depth + 1) * -1
-        else:
-            if item.is_folder:
-                item.level = 1
-                item.depth = 1
-            else:
-                item.level = -1
-                item.depth = -1
+                if item.is_folder:
+                    item.level = 1
+                    item.depth = 1
+                else:
+                    item.level = -1
+                    item.depth = -1
 
         if item not in self.file_list:
             self.file_list.append(item)
