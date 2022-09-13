@@ -28,7 +28,10 @@ class QTreeWidgetBundle(QTreeWidget):
         Adds child bundle
         """
         if isinstance(item, BND):
-            self.addTopLevelItem(QTreeWidgetItemBundle(item, self.style))
+            if self.bundle:
+                self.addTopLevelItem(QTreeWidgetItemBundle(item, self.style))
+                self.bundle.add_to_file_list(item)
+
         elif isinstance(item, QTreeWidgetItemBundle):
             self.addTopLevelItem(item)
 

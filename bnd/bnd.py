@@ -255,7 +255,24 @@ class BND:
         """
         Add item to file list
         """
+
         item.set_parent(self)
+
+        if self.is_folder:
+            if item.is_folder:
+                item.level = self.level + 1
+                item.depth = self.depth + 1
+            else:
+                item.level = (self.level + 1) * -1
+                item.depth = (self.depth + 1) * -1
+        else:
+            if item.is_folder:
+                item.level = 1
+                item.depth = 1
+            else:
+                item.level = -1
+                item.depth = -1
+
         if item not in self.file_list:
             self.file_list.append(item)
             if set_modified:

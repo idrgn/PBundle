@@ -51,6 +51,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_replace_file.clicked.connect(self.replace_files)
         self.pb_delete_file.clicked.connect(self.delete_files)
         self.pb_add_folder.clicked.connect(self.add_folder)
+        self.pb_add_file.clicked.connect(self.add_file)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
         self.treeWidget.itemChanged.connect(self.item_changed)
 
@@ -59,24 +60,65 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Adds a new folder
         """
         selected = self.get_selected_item()
-        new_folder_bundle = BND(name="new folder/", depth=1, is_folder=True, level=1)
-        new_widget = QTreeWidgetItemBundle(new_folder_bundle, self.style())
+        new_folder = BND(name="new folder/", is_folder=True)
+        new_widget = QTreeWidgetItemBundle(new_folder, self.style())
 
         # If a file is not selected, add to root
         if not selected:
-            self.bnd.add_to_file_list(new_folder_bundle, True)
-            self.treeWidget.addChildBundle(new_widget)
+            self.bnd.add_to_file_list(new_folder, True)
+            self.treeWidget.addChildBundle(new_folder)
         else:
             # If a file is selected and it's a folder, add to it
             # If it is a file, get the parent folder and add to it
             if selected.bundle.is_folder:
-                new_folder_bundle.level = selected.bundle.level + 1
-                selected.bundle.add_to_file_list(new_folder_bundle, True)
-                selected.addChildBundle(new_folder_bundle)
+                selected.bundle.add_to_file_list(new_folder, True)
+                selected.addChildBundle(new_folder)
             else:
-                new_folder_bundle.level = selected.getParent().bundle.level + 1
-                selected.getParent().bundle.add_to_file_list(new_folder_bundle, True)
-                selected.getParent().addChildBundle(new_folder_bundle)
+                # If the file has a parent object with a bundle, add to it
+                # If not, add to root
+                if selected.getParent() and selected.getParent().bundle:
+                    selected.getParent().bundle.add_to_file_list(new_folder, True)
+                    selected.getParent().addChildBundle(new_folder)
+                else:
+                    self.bnd.add_to_file_list(new_folder, True)
+                    self.treeWidget.addChildBundle(new_widget)
+
+    def add_file(self):
+        """
+        Adds one or multiple files
+        """
+        input_files = QtWidgets.QFileDialog.getOpenFileNames(self, "Open")
+        if input_files and input_files[0] and input_files[0][0] != "":
+            for path in input_files[0]:
+                with open(path, "r+b") as f:
+                    file_name = os.path.basename(path)
+                    data = f.read()
+                    new_file = BND(data, file_name)
+
+                    selected = self.get_selected_item()
+                    new_widget = QTreeWidgetItemBundle(new_file, self.style())
+
+                    # If a file is not selected, add to root
+                    if not selected:
+                        self.bnd.add_to_file_list(new_file, True)
+                        self.treeWidget.addChildBundle(new_widget)
+                    else:
+                        # If a file is selected and it's a folder, add to it
+                        # If it is a file, get the parent folder and add to it
+                        if selected.bundle.is_folder:
+                            selected.bundle.add_to_file_list(new_file, True)
+                            selected.addChildBundle(new_file)
+                        else:
+                            # If the file has a parent object with a bundle, add to it
+                            # If not, add to root
+                            if selected.getParent() and selected.getParent().bundle:
+                                selected.getParent().bundle.add_to_file_list(
+                                    new_file, True
+                                )
+                                selected.getParent().addChildBundle(new_file)
+                            else:
+                                self.bnd.add_to_file_list(new_file, True)
+                                self.treeWidget.addChildBundle(new_widget)
 
     def get_addition_position(self, item):
         """
@@ -361,7 +403,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Enable buttons
         self.pb_back.setEnabled(self.bnd.has_parent())
-        # self.pb_add_file.setEnabled(True)
+        self.pb_add_file.setEnabled(True)
         self.pb_add_folder.setEnabled(True)
         self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
