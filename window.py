@@ -57,17 +57,18 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def add_folder(self):
         """
         Adds a new folder
-        TODO: Make sure that everything works fine
         """
         selected = self.get_selected_item()
         new_folder_bundle = BND(name="new folder/", depth=1, is_folder=True, level=1)
         new_widget = QTreeWidgetItemBundle(new_folder_bundle, self.style())
 
-        # If not selected, add to root
+        # If a file is not selected, add to root
         if not selected:
             self.bnd.add_to_file_list(new_folder_bundle, True)
             self.treeWidget.addChildBundle(new_widget)
         else:
+            # If a file is selected and it's a folder, add to it
+            # If it is a file, get the parent folder and add to it
             if selected.bundle.is_folder:
                 new_folder_bundle.level = selected.bundle.level + 1
                 selected.bundle.add_to_file_list(new_folder_bundle, True)
@@ -79,9 +80,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
     def get_addition_position(self, item):
         """
-        Gets the good stuff
+        Gets the addition position of a new file
         """
-
         if not item:
             # If no selection, add to root
             return {"parent": self.treeWidget, "position": 0, "level": 0}
