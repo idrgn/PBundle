@@ -3,12 +3,12 @@ import os
 import shutil
 import sys
 import tempfile
-from const import GZIPPED_FILE_NAME
 
 import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
+from const import GZIPPED_FILE_NAME
 from data import *
 from interface import main_window
 from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
@@ -166,9 +166,12 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             if entry:
                 entry.bundle.delete()
                 entry.bundle = None
-                entry_parent = entry.parent()
+                entry_parent = entry.getParent()
                 if entry_parent:
-                    entry_parent.removeChild(entry)
+                    try:
+                        entry_parent.removeChild(entry)
+                    except Exception:
+                        sip.delete(entry)
                 else:
                     sip.delete(entry)
 
