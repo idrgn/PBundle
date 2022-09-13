@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import tempfile
+from const import GZIPPED_FILE_NAME
 
 import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -380,14 +381,17 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Check if the item filename is correct according to the file type
         """
         name = item.text(0)
-        if item.bundle.is_folder():
+
+        # Check that folders end with /
+        # Check that single files are named [[ GZIPPED FILE ]]
+        if item.bundle.is_folder:
             if not name.endswith("/"):
                 name += "/"
         elif item.bundle.is_single_file():
-            if name != "[[ GZIPPED FILE ]]":
-                name = "[[ GZIPPED FILE ]]"
-        else:
-            self.set_item_name(item, name)
+            if name != GZIPPED_FILE_NAME:
+                name = GZIPPED_FILE_NAME
+
+        self.set_item_name(item, name)
 
     def set_item_name(self, item: QTreeWidgetItemBundle, text: str):
         """

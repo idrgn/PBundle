@@ -7,3 +7,4 @@ EMPTY_WORD = b"\x00\x00\x00\x00"
 bnd_header_file = open(resource_path("res/bnd_header.bin"), "r+b")
 BND_FILE_HEADER = bnd_header_file.read()
 bnd_header_file.close()
+GZIPPED_FILE_NAME = "[[ GZIPPED FILE ]]"
