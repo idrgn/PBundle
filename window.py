@@ -387,7 +387,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if item.bundle.is_folder:
             if not name.endswith("/"):
                 name += "/"
-        elif item.bundle.is_single_file():
+        elif item.bundle.is_single_file:
             if name != GZIPPED_FILE_NAME:
                 name = GZIPPED_FILE_NAME
 
