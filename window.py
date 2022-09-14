@@ -8,7 +8,7 @@ import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
-from const import GZIPPED_FILE_NAME
+from const import EMPTY_BND_FILE, GZIPPED_FILE_NAME
 from data import *
 from interface import main_window
 from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
@@ -16,7 +16,7 @@ from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
 
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
     def __init__(self):
-        QtGui.QFontDatabase.addApplicationFont(resource_path("res/font.ttc").as_posix())
+        QtGui.QFontDatabase.addApplicationFont(resource_path("res/font.ttf").as_posix())
         super().__init__()
 
         # Init
@@ -47,13 +47,44 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.action_save.triggered.connect(self.save_bnd_file)
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
-        self.pb_extract_file.clicked.connect(self.extract_file)
+        self.pb_extract_file.clicked.connect(self.extract_files)
         self.pb_replace_file.clicked.connect(self.replace_files)
         self.pb_delete_file.clicked.connect(self.delete_files)
         self.pb_add_folder.clicked.connect(self.add_folder)
         self.pb_add_file.clicked.connect(self.add_file)
+        self.pb_add_bnd.clicked.connect(self.add_bnd)
+        # self.pb_moveup.clicked.connect(lambda: self.move_item(-1))
+        # self.pb_movedown.clicked.connect(lambda: self.move_item(1))
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
         self.treeWidget.itemChanged.connect(self.item_changed)
+
+    def move_item(self, displacement):
+        """
+        Moves selected item up or down based on displacement value
+        TODO: Finish
+        """
+        selected = self.get_selected_item()
+        if selected.bundle and selected.parent and selected.bundle.parent:
+            interface_item_index = self.treeWidget.currentIndex().row()
+
+            bundle_item_parent = selected.bundle.parent
+            bundle_item_index = bundle_item_parent.file_list.index(selected.bundle)
+            bundle_item_parent.file_list.pop(bundle_item_index)
+
+            new_index = bundle_item_index + displacement
+
+            # Index limits
+            if new_index > len(bundle_item_parent.file_list):
+                new_index = len(bundle_item_parent.file_list) + 1
+            elif new_index < 0:
+                new_index = 0
+
+            bundle_item_parent.add_to_file_list(
+                selected.bundle, True, False, False, new_index
+            )
+
+            # selected.getParent().removeChild(selected)
+            # selected.getParent().insertTopLevelItem(bundle_item_index - 1, selected)
 
     def add_folder(self):
         """
@@ -66,7 +97,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         # If a file is not selected, add to root
         if not selected:
             self.bnd.add_to_file_list(new_folder, True, True)
-            self.treeWidget.addChildBundle(new_folder)
+            self.treeWidget.addChildBundle(new_widget)
         else:
             # If a file is selected and it's a folder, add to it
             # If it is a file, get the parent folder and add to it
@@ -120,42 +151,33 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                                 self.bnd.add_to_file_list(new_file, True, True)
                                 self.treeWidget.addChildBundle(new_widget)
 
-    def get_addition_position(self, item):
+    def add_bnd(self):
         """
-        Gets the addition position of a new file
+        Adds a new empty BND file
         """
-        if not item:
-            # If no selection, add to root
-            return {"parent": self.treeWidget, "position": 0, "level": 0}
+        selected = self.get_selected_item()
+        new_bnd = BND(EMPTY_BND_FILE, "empty_bundle.bnd")
+        new_widget = QTreeWidgetItemBundle(new_bnd, self.style())
+
+        # If a file is not selected, add to root
+        if not selected:
+            self.bnd.add_to_file_list(new_bnd, True, True)
+            self.treeWidget.addChildBundle(new_widget)
         else:
-            bundle = item.bundle
-            if bundle.is_folder:
-                # If selected is a folder, add to selected with current level
-                return {"parent": item, "position": 0, "level": bundle.level}
+            # If a file is selected and it's a folder, add to it
+            # If it is a file, get the parent folder and add to it
+            if selected.bundle.is_folder:
+                selected.bundle.add_to_file_list(new_bnd, True, True)
+                selected.addChildBundle(new_bnd)
             else:
-                if bundle.depth == 0:
-                    # If selected is at level one, add to root
-                    return {"parent": self.treeWidget, "position": 0, "level": 0}
+                # If the file has a parent object with a bundle, add to it
+                # If not, add to root
+                if selected.getParent() and selected.getParent().bundle:
+                    selected.getParent().bundle.add_to_file_list(new_bnd, True, True)
+                    selected.getParent().addChildBundle(new_bnd)
                 else:
-                    parent = bundle.parent
-                    if parent:
-                        if parent == self.bnd:
-                            # If the parent is the current BND, add to root
-                            return {
-                                "parent": self.treeWidget,
-                                "position": 0,
-                                "level": 0,
-                            }
-                        else:
-                            # If it isn't must be a folder, add to it
-                            return {
-                                "parent": item,
-                                "position": 0,
-                                "level": bundle.level,
-                            }
-                    else:
-                        # If nothing return nothing
-                        return {"parent": None, "position": None, "level": None}
+                    self.bnd.add_to_file_list(new_bnd, True, True)
+                    self.treeWidget.addChildBundle(new_widget)
 
     def delete_files(self):
         """
@@ -164,16 +186,23 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         for entry in self.get_selected_items():
             if entry:
-                entry.bundle.delete()
-                entry.bundle = None
-                entry_parent = entry.getParent()
-                if entry_parent:
-                    try:
-                        entry_parent.removeChild(entry)
-                    except Exception:
-                        sip.delete(entry)
-                else:
-                    sip.delete(entry)
+                self.delete_single_item(entry)
+        self.update_current_entry_data()
+
+    def delete_single_item(self, item):
+        """
+        Deletes single item
+        """
+        item.bundle.delete()
+        item.bundle = None
+        entry_parent = item.getParent()
+        if entry_parent:
+            try:
+                entry_parent.removeChild(item)
+            except Exception:
+                sip.delete(item)
+        else:
+            sip.delete(item)
 
     def replace_files(self):
         """
@@ -198,7 +227,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if counter > 0:
             self.update_current_entry_data()
 
-    def extract_file(self):
+    def extract_files(self):
         """
         Triggered when the Extract Files button is pressed
         Extracts one or multiple selected files in the file's folder
@@ -271,14 +300,22 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         bundle = selected_item.bundle
 
+        # Set default values if there is no bundle
         if not bundle:
             self.set_default_file_data_values()
             return
 
+        # Enable the internal open button
         if not bundle.is_raw and not bundle.is_folder:
             self.pb_open.setEnabled(True)
         else:
             self.pb_open.setEnabled(False)
+
+        # Show encrypted / decrypted
+        self.cb_encrypted.setChecked(bundle.encrypted)
+        self.cb_gzipped.setChecked(bundle.is_gzipped)
+        self.cb_raw.setChecked(bundle.is_raw)
+        self.cb_modified.setChecked(bundle.is_modified)
 
         # CRC text
         self.le_crc.setText((str(hex(bundle.get_crc()))).upper()[2:] + " ")
@@ -289,21 +326,20 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.le_size.setText(sizeof_fmt(len(to_bytes)) + " ")
         self.le_size.setToolTip(f"Size (ungzipped): {len(to_bytes)} bytes")
 
-        # Set empty
+        # Set empty preview text
         self.te_preview.setText("")
 
         # Hex view
         # TODO: Update on thread
+        # TODO: Adjust to resize (constraints)
         if len(to_bytes) > 0:
             string = str(binascii.hexlify(to_bytes[0:0x70]))[2:-1]
-
             string = " ".join(string[i : i + 2] for i in range(0, len(string), 2))
             string = "\n".join(string[i : i + 24] for i in range(0, len(string), 24))
             lines = string.splitlines()
-            self.te_preview.append("\n")
             counter = 0
             for line in lines:
-                line = "{0:#0{1}x}".format(counter * 8, 4) + " " + line
+                line = " {0:#0{1}x}".format(counter * 8, 4) + " " + line
                 self.te_preview.append(line)
                 self.te_preview.setAlignment(QtCore.Qt.AlignLeft)
                 counter += 1
@@ -408,6 +444,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_back.setEnabled(self.bnd.has_parent())
         self.pb_add_file.setEnabled(True)
         self.pb_add_folder.setEnabled(True)
+        self.pb_add_bnd.setEnabled(True)
         self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
         self.pb_replace_file.setEnabled(True)

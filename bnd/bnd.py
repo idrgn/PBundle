@@ -252,7 +252,11 @@ class BND:
                 return self.parent.get_local_path() + self.name
 
     def add_to_file_list(
-        self, item: object, set_modified: bool = False, overwrite_level: bool = False
+        self,
+        item: object,
+        set_modified: bool = False,
+        overwrite_level: bool = False,
+        index: int = None,
     ):
         """
         Add item to file list
@@ -277,7 +281,10 @@ class BND:
                     item.depth = -1
 
         if item not in self.file_list:
-            self.file_list.append(item)
+            if index == None:
+                self.file_list.append(item)
+            else:
+                self.file_list.insert(index, item)
             if set_modified:
                 self.set_modified()
 

@@ -1,6 +1,7 @@
 import typing
 from bnd.bnd import BND
 from PyQt5.QtWidgets import QWidget, QTreeWidget
+from PyQt5 import QtGui
 
 from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
 
@@ -31,7 +32,6 @@ class QTreeWidgetBundle(QTreeWidget):
             if self.bundle:
                 self.addTopLevelItem(QTreeWidgetItemBundle(item, self.style))
                 self.bundle.add_to_file_list(item)
-
         elif isinstance(item, QTreeWidgetItemBundle):
             self.addTopLevelItem(item)
 
@@ -49,3 +49,10 @@ class QTreeWidgetBundle(QTreeWidget):
         Returns self because it's always root
         """
         return self
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        selected_items = self.selectedItems()
+        for item in selected_items:
+            if item.bundle:
+                print(item.bundle.name)
+        return super().dropEvent(event)
