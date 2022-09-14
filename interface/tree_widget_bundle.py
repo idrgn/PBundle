@@ -51,8 +51,11 @@ class QTreeWidgetBundle(QTreeWidget):
         return self
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        """
+        Drop event
+        """
         selected_items = self.selectedItems()
         for item in selected_items:
             if item.bundle:
-                print(item.bundle.name)
+                pass
         return super().dropEvent(event)
