@@ -3,6 +3,8 @@ import os
 import shutil
 import sys
 import tempfile
+import threading
+import time
 
 import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -454,7 +456,14 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 self.load_expanded_state_child(root_widget)
 
         if self.bnd:
-            self.treeWidget.verticalScrollBar().setValue(self.bnd.scroll_position)
+            threading.Thread(
+                target=self.scroll_to_position,
+                daemon=True,
+                args=(
+                    self.treeWidget.verticalScrollBar(),
+                    self.bnd.scroll_position,
+                ),
+            ).start()
 
     def load_expanded_state_child(self, item):
         """
@@ -465,6 +474,14 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             if current_widget.bundle and current_widget.bundle.is_folder:
                 current_widget.setExpanded(current_widget.bundle.is_expanded)
                 self.load_expanded_state_child(current_widget)
+
+    def scroll_to_position(self, widget, position):
+        """
+        Scrolls to position
+        """
+        while widget.value() != position:
+            widget.setValue(position)
+            time.sleep(0.01)
 
     def update_current_bnd(self, new_bnd):
         """
