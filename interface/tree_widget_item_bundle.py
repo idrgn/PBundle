@@ -3,9 +3,11 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QStyle, QTreeWidgetItem
 
 
-class QTreeWidgetBundleItem(QTreeWidgetItem):
+class QTreeWidgetItemBundle(QTreeWidgetItem):
     def __init__(self, item: BND, style) -> None:
         super().__init__()
+
+        self.parent = None
 
         # Name
         self.setText(0, item.name)
@@ -21,28 +23,34 @@ class QTreeWidgetBundleItem(QTreeWidgetItem):
         self.setFlags(self.flags() | Qt.ItemIsEditable)
 
         # Save variable
-        self.bundleItem = item
+        self.bundle = item
+        self.bundle.ui = self
         self.style = style
 
         # Add subfolders
-        if self.bundleItem.is_folder:
-            self.add_sub_items()
+        if self.bundle.is_folder:
+            self.addSubItems()
 
-    def add_sub_items(self):
+    def addChildBundle(self, bundle: BND):
+        widget = QTreeWidgetItemBundle(bundle, self.style)
+        widget.setParent(self)
+        self.addChild(widget)
+
+    def addSubItems(self):
         """
         Adds items in subfolders
         """
-        for item in self.bundleItem.file_list:
-            self.addChild(QTreeWidgetBundleItem(item, self.style))
+        for item in self.bundle.file_list:
+            self.addChildBundle(item)
 
-    def get_is_folder(self):
+    def setParent(self, parent):
         """
-        Returns True if the item is a folder
+        Sets parent
         """
-        return self.bundleItem.is_folder
+        self.parent = parent
 
-    def get_is_single_file(self):
+    def getParent(self):
         """
-        Returns True if the item is a single file
+        Gets parent
         """
-        return self.bundleItem.is_single_file
+        return self.parent
