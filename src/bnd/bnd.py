@@ -185,6 +185,30 @@ class BND:
                 count += 1
         return count
 
+    def get_bundle_from_filename_array(self, filename_array):
+        """
+        Tries to get bundle from a filename array
+        """
+        # Return None if array is empty
+        if len(filename_array) == 0:
+            return None
+        else:
+            # Get first item of the array
+            current_filename = filename_array[0]
+
+            # Check all bundles
+            for bundle in self.file_list:
+                print(" -", bundle.name)
+                if bundle.name.strip("/") == current_filename:
+                    if len(filename_array) == 1:
+                        return bundle
+                    else:
+                        filename_array.pop(0)
+                        return bundle.get_bundle_from_filename_array(filename_array)
+
+            # Return none if bundle not found
+            return None
+
     def get_last_folder(self):
         """
         Obtains the last folder inside the BND
