@@ -20,6 +20,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         super().__init__()
 
         # Init
+        self.bnd = None
         self.path = None
         self.setupUi(self)
         self.set_connections()
@@ -248,18 +249,17 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         selected_item = self.get_selected_item()
         if selected_item:
             if not selected_item.bundle.is_raw and not selected_item.bundle.is_folder:
-                self.bnd = selected_item.bundle
-                self.reload_entries()
+                self.update_current_bnd(selected_item.bundle)
 
     def back_local_bnd(self):
         """
         Triggered when the Back to previous file button is pressed
         Returns to parent BND
         """
-        self.bnd = self.bnd.get_parent()
-        while self.bnd.is_folder:
-            self.bnd = self.bnd.get_parent()
-        self.reload_entries()
+        new_bnd = self.bnd.get_parent()
+        while new_bnd.is_folder:
+            new_bnd = new_bnd.get_parent()
+        self.update_current_bnd(new_bnd)
 
     def selection_changed(self):
         """
@@ -401,8 +401,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         with open(file, "r+b") as f:
             data = f.read()
             self.path = file
-            self.bnd = BND(data)
-            self.reload_entries()
+            self.update_current_bnd(BND(data))
             self.output_path = os.path.dirname(os.path.abspath(self.path))
             self.file_name = os.path.basename(os.path.abspath(self.path))
 
@@ -413,6 +412,69 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if self.path and self.bnd:
             with open(self.path + ".out", "wb") as f:
                 f.write(self.bnd.get_root_parent().to_bytes())
+
+    def save_expanded_state(self):
+        """
+        Saves state of all the BND files
+        """
+        scroll_bar = self.treeWidget.verticalScrollBar()
+        scroll_position = scroll_bar.value()
+
+        if self.bnd:
+            self.bnd.scroll_position = scroll_position
+
+        root = self.treeWidget.invisibleRootItem()
+        child_count = root.childCount()
+        for i in range(child_count):
+            root_widget = root.child(i)
+            if root_widget.bundle.is_folder:
+                root_widget.bundle.is_expanded = root_widget.isExpanded()
+                self.save_expanded_state_child(root_widget)
+
+    def save_expanded_state_child(self, item):
+        """
+        Save state of itself and childs
+        """
+        for x in range(item.childCount()):
+            current_widget = item.child(x)
+            if current_widget.bundle and current_widget.bundle.is_folder:
+                current_widget.bundle.is_expanded = current_widget.isExpanded()
+                self.save_expanded_state_child(current_widget)
+
+    def load_expanded_state(self):
+        """
+        Sets expanded state of all items
+        """
+        root = self.treeWidget.invisibleRootItem()
+        child_count = root.childCount()
+        for i in range(child_count):
+            root_widget = root.child(i)
+            if root_widget.bundle.is_folder:
+                root_widget.setExpanded(root_widget.bundle.is_expanded)
+                self.load_expanded_state_child(root_widget)
+
+        if self.bnd:
+            self.treeWidget.verticalScrollBar().setValue(self.bnd.scroll_position)
+
+    def load_expanded_state_child(self, item):
+        """
+        Sets expanded state of all items and childs
+        """
+        for x in range(item.childCount()):
+            current_widget = item.child(x)
+            if current_widget.bundle and current_widget.bundle.is_folder:
+                current_widget.setExpanded(current_widget.bundle.is_expanded)
+                self.load_expanded_state_child(current_widget)
+
+    def update_current_bnd(self, new_bnd):
+        """
+        Sets current BND file
+        """
+        self.save_expanded_state()
+        self.bnd = new_bnd
+        self.reload_entries()
+        # self.treeWidget.setBundle(new_bnd)
+        self.load_expanded_state()
 
     def reload_entries(self):
         """
@@ -435,8 +497,6 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_delete_file.setEnabled(True)
         self.pb_extract_file.setEnabled(True)
         self.pb_replace_file.setEnabled(True)
-        # self.pb_movedown.setEnabled(True)
-        # self.pb_moveup.setEnabled(True)
 
         # Change title
         self.treeWidget.setHeaderLabel(self.bnd.get_full_path())
