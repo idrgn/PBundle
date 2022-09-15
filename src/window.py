@@ -23,6 +23,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.path = None
         self.setupUi(self)
         self.set_connections()
+        self.current_copied_items = []
         self.current_extracted_items = []
         self.treeWidget.setStyle(self.style())
 
@@ -53,10 +54,26 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.pb_add_folder.clicked.connect(self.add_folder)
         self.pb_add_file.clicked.connect(self.add_file)
         self.pb_add_bnd.clicked.connect(self.add_bnd)
-        # self.pb_moveup.clicked.connect(lambda: self.move_item(-1))
-        # self.pb_movedown.clicked.connect(lambda: self.move_item(1))
+        self.pb_copy.clicked.connect(self.copy_selection)
+        self.pb_paste.clicked.connect(self.paste_selection)
         self.treeWidget.itemSelectionChanged.connect(self.selection_changed)
         self.treeWidget.itemChanged.connect(self.item_changed)
+
+    def copy_selection(self):
+        """
+        Copies current selection
+        """
+        selection = self.treeWidget.selectedItems()
+
+        if (
+            selection
+            and len(selection) > 0
+            and isinstance(selection[0], QTreeWidgetItemBundle)
+        ):
+            self.current_copied_items.clear()
+            for item in selection:
+                self.current_copied_items.append(item.bundle)
+            self.pb_paste.setEnabled(True)
 
     def move_item(self, displacement):
         """
@@ -86,97 +103,64 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             # selected.getParent().removeChild(selected)
             # selected.getParent().insertTopLevelItem(bundle_item_index - 1, selected)
 
+    def paste_selection(self):
+        """
+        Pastes current copied items to the current selected file
+        """
+        if self.current_copied_items and len(self.current_copied_items) > 0:
+            for item in self.current_copied_items:
+                new_file = item.copy()
+                new_file.parent = None
+                self.add_to_selected_item(new_file)
+
     def add_folder(self):
         """
-        Adds a new folder
+        Adds a new folder to the current selected file
         """
-        selected = self.get_selected_item()
-        new_folder = BND(name="new folder/", is_folder=True)
-        new_widget = QTreeWidgetItemBundle(new_folder, self.style())
-
-        # If a file is not selected, add to root
-        if not selected:
-            self.bnd.add_to_file_list(new_folder, True, True)
-            self.treeWidget.addChildBundle(new_widget)
-        else:
-            # If a file is selected and it's a folder, add to it
-            # If it is a file, get the parent folder and add to it
-            if selected.bundle.is_folder:
-                selected.bundle.add_to_file_list(new_folder, True, True)
-                selected.addChildBundle(new_folder)
-            else:
-                # If the file has a parent object with a bundle, add to it
-                # If not, add to root
-                if selected.getParent() and selected.getParent().bundle:
-                    selected.getParent().bundle.add_to_file_list(new_folder, True, True)
-                    selected.getParent().addChildBundle(new_folder)
-                else:
-                    self.bnd.add_to_file_list(new_folder, True, True)
-                    self.treeWidget.addChildBundle(new_widget)
+        self.add_to_selected_item(BND(name="new folder/", is_folder=True))
 
     def add_file(self):
         """
-        Adds one or multiple files
+        Adds one or multiple files to the current selected file
         """
         input_files = QtWidgets.QFileDialog.getOpenFileNames(self, "Open")
         if input_files and input_files[0] and input_files[0][0] != "":
             for path in input_files[0]:
                 with open(path, "r+b") as f:
-                    file_name = os.path.basename(path)
-                    data = f.read()
-                    new_file = BND(data, file_name)
-
-                    selected = self.get_selected_item()
-                    new_widget = QTreeWidgetItemBundle(new_file, self.style())
-
-                    # If a file is not selected, add to root
-                    if not selected:
-                        self.bnd.add_to_file_list(new_file, True, True)
-                        self.treeWidget.addChildBundle(new_widget)
-                    else:
-                        # If a file is selected and it's a folder, add to it
-                        # If it is a file, get the parent folder and add to it
-                        if selected.bundle.is_folder:
-                            selected.bundle.add_to_file_list(new_file, True, True)
-                            selected.addChildBundle(new_file)
-                        else:
-                            # If the file has a parent object with a bundle, add to it
-                            # If not, add to root
-                            if selected.getParent() and selected.getParent().bundle:
-                                selected.getParent().bundle.add_to_file_list(
-                                    new_file, True, True
-                                )
-                                selected.getParent().addChildBundle(new_file)
-                            else:
-                                self.bnd.add_to_file_list(new_file, True, True)
-                                self.treeWidget.addChildBundle(new_widget)
+                    self.add_to_selected_item(BND(f.read(), os.path.basename(path)))
 
     def add_bnd(self):
         """
-        Adds a new empty BND file
+        Adds a new empty BND file to the current selected file
+        """
+        new_bnd = BND(EMPTY_BND_FILE, "empty_bundle.bnd")
+        self.add_to_selected_item(new_bnd)
+
+    def add_to_selected_item(self, bnd):
+        """
+        Adds a BND file to the current selected item
         """
         selected = self.get_selected_item()
-        new_bnd = BND(EMPTY_BND_FILE, "empty_bundle.bnd")
-        new_widget = QTreeWidgetItemBundle(new_bnd, self.style())
+        new_widget = QTreeWidgetItemBundle(bnd, self.style())
 
         # If a file is not selected, add to root
         if not selected:
-            self.bnd.add_to_file_list(new_bnd, True, True)
+            self.bnd.add_to_file_list(bnd, True, True)
             self.treeWidget.addChildBundle(new_widget)
         else:
             # If a file is selected and it's a folder, add to it
             # If it is a file, get the parent folder and add to it
             if selected.bundle.is_folder:
-                selected.bundle.add_to_file_list(new_bnd, True, True)
-                selected.addChildBundle(new_bnd)
+                selected.bundle.add_to_file_list(bnd, True, True)
+                selected.addChildBundle(bnd)
             else:
                 # If the file has a parent object with a bundle, add to it
                 # If not, add to root
                 if selected.getParent() and selected.getParent().bundle:
-                    selected.getParent().bundle.add_to_file_list(new_bnd, True, True)
-                    selected.getParent().addChildBundle(new_bnd)
+                    selected.getParent().bundle.add_to_file_list(bnd, True, True)
+                    selected.getParent().addChildBundle(bnd)
                 else:
-                    self.bnd.add_to_file_list(new_bnd, True, True)
+                    self.bnd.add_to_file_list(bnd, True, True)
                     self.treeWidget.addChildBundle(new_widget)
 
     def delete_files(self):
@@ -296,9 +280,12 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         if not selected_item:
             self.set_default_file_data_values()
+            self.pb_copy.setEnabled(False)
             return
 
         bundle = selected_item.bundle
+
+        self.pb_copy.setEnabled(True)
 
         # Set default values if there is no bundle
         if not bundle:

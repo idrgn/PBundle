@@ -87,6 +87,25 @@ class BND:
         self.read_from_file(data)
         self.set_modified()
 
+    def copy(self):
+        """
+        Generates a copy of itself
+        """
+        copy = BND(
+            self.raw_data,
+            self.name,
+            self.depth,
+            self.encrypted,
+            self.is_folder,
+            self.level,
+        )
+
+        if self.is_folder:
+            for item in self.file_list:
+                copy.add_to_file_list(item.copy())
+
+        return copy
+
     def delete(self):
         """
         Deletes itself
