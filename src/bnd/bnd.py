@@ -66,6 +66,7 @@ class BND:
         Updates data
         """
         self.file_list = []
+        self.raw_data = data
         self.encrypted = encrypted
 
         # Is raw
