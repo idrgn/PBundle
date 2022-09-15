@@ -31,8 +31,6 @@ class BND:
 
         # So only opened items
         # will be processed
-        self.scroll_position = 0
-        self.is_expanded = False
         self.is_modified = False
         self.raw_data = data
 

@@ -424,6 +424,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         if self.bnd:
             self.bnd.scroll_position = scroll_position
+            selection = self.get_selected_item()
+            if selection:
+                self.bnd.last_sub_item = selection.bundle
 
         root = self.treeWidget.invisibleRootItem()
         child_count = root.childCount()
@@ -456,6 +459,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                 self.load_expanded_state_child(root_widget)
 
         if self.bnd:
+            if self.bnd.last_sub_item:
+                self.treeWidget.setCurrentItem(self.bnd.last_sub_item.ui)
+                self.bnd.last_sub_item.ui.setSelected(True)
             threading.Thread(
                 target=self.scroll_to_position,
                 daemon=True,
@@ -481,16 +487,26 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         while widget.value() != position:
             widget.setValue(position)
-            time.sleep(0.01)
+            time.sleep(0.001)
 
     def update_current_bnd(self, new_bnd):
         """
         Sets current BND file
         """
+        # Save expanded state
         self.save_expanded_state()
+
+        # Assign properties if they're not initialized yet
+        if not hasattr(new_bnd, "last_sub_item"):
+            new_bnd.last_sub_item = None
+        if not hasattr(new_bnd, "scroll_position"):
+            new_bnd.scroll_position = 0
+
+        # Get new BND
         self.bnd = new_bnd
+
+        # Reload entries and expanded state
         self.reload_entries()
-        # self.treeWidget.setBundle(new_bnd)
         self.load_expanded_state()
 
     def reload_entries(self):

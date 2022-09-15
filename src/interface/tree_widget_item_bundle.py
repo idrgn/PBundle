@@ -15,6 +15,8 @@ class QTreeWidgetItemBundle(QTreeWidgetItem):
         # Vairable icon
         if item.is_folder:
             icon = QStyle.SP_DirIcon
+            if not hasattr(item, "is_expanded"):
+                item.is_expanded = False
         else:
             icon = QStyle.SP_FileIcon
 
