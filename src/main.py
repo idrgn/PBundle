@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 from PyQt5 import QtWidgets
 
@@ -7,25 +8,41 @@ from quickreplace import quick_replace
 
 print("BND Editor. Created by Maikel.")
 
-if __name__ == "__main__":
-    do_quick_replace = False
 
-    # Quick replace mode check
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "-qr":
-            do_quick_replace = True
+if __name__ == "__main__":
+
+    # Create argument parser
+    parser = argparse.ArgumentParser(description="PBundle")
+
+    # Arguments
+    parser.add_argument(
+        "-quickreplace",
+        "-qr",
+        action="store_true",
+        help="Quick replace mode",
+        default=False,
+    )
+
+    parser.add_argument("-sourcefile", "-s", type=str, help="Replacement file")
+    parser.add_argument("-internalpath", "-p", type=str, help="Internal file path")
+    parser.add_argument(
+        "-destinationfile", "-d", type=str, help="BND file to be modified"
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
 
     # Quick replace mode, useful for automating file packing
-    if do_quick_replace:
-        if len(sys.argv) < 5:
-            print("Usage: -qr file source destination")
+    # Or normal mode, with UI
+    if args.quickreplace:
+        if not args.destinationfile:
+            print("Missing destination BND file (-d 'destination')")
+        elif not args.sourcefile:
+            print("Missing source file (-s 'source')")
+        elif not args.internalpath:
+            print("Missing internal file path (-p 'path')")
         else:
-            qr_file = sys.argv[2]
-            qr_source = sys.argv[3]
-            qr_destination = sys.argv[4]
-            quick_replace(qr_file, qr_source, qr_destination)
-
-    # Normal mode, with UI
+            quick_replace(args.destinationfile, args.sourcefile, args.internalpath)
     else:
         app = QtWidgets.QApplication(sys.argv)
         main_window = Application()

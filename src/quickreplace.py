@@ -4,11 +4,8 @@ from bnd.bnd import BND
 
 
 def quick_replace(bnd_file_path, source_file_path, destination):
-    """_summary_
-    Args:
-        bnd_file_path (_type_): _description_
-        source_file_path (_type_): _description_
-        destination (_type_): _description_
+    """
+    Quick BND replacement
     """
     print(
         "Replacing file", destination, "inside", bnd_file_path, "with", source_file_path
