@@ -66,6 +66,7 @@ class BND:
         Updates data
         """
         self.file_list = []
+        self.raw_data = data
         self.encrypted = encrypted
 
         # Is raw
@@ -184,6 +185,30 @@ class BND:
             else:
                 count += 1
         return count
+
+    def get_bundle_from_filename_array(self, filename_array):
+        """
+        Returns bundle from filename array
+        """
+
+        # Return None if array is empty
+        if len(filename_array) == 0:
+            return None
+        else:
+            # Get first item of the array
+            current_filename = filename_array[0]
+
+            # Check all bundles
+            for bundle in self.file_list:
+                if bundle.name.strip("/") == current_filename:
+                    if len(filename_array) == 1:
+                        return bundle
+                    else:
+                        filename_array.pop(0)
+                        return bundle.get_bundle_from_filename_array(filename_array)
+
+            # Return none if bundle not found
+            return None
 
     def get_last_folder(self):
         """
