@@ -7,6 +7,9 @@ from subprocess import check_output
 
 
 def p3hash(data: bytes, mode: str):
+    """
+    mode (str): "d" decrypt / "e" encrypt
+    """
     with tempfile.NamedTemporaryFile(mode="w+b", suffix=".bin", delete=False) as tf:
         temp = Path(tf.name)
         tf.write(data)

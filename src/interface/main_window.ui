@@ -855,6 +855,7 @@ p, li { white-space: pre-wrap; }
      <string>File</string>
     </property>
     <addaction name="action_load"/>
+    <addaction name="action_load_datams"/>
     <addaction name="action_save"/>
     <addaction name="action_save_as"/>
     <addaction name="action_refresh"/>
@@ -891,7 +892,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_load">
    <property name="text">
-    <string>Load</string>
+    <string>Load BND</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
@@ -983,6 +984,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>External header file</string>
+   </property>
+  </action>
+  <action name="action_load_datams">
+   <property name="text">
+    <string>Load DATAMS</string>
    </property>
   </action>
  </widget>

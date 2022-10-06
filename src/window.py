@@ -48,6 +48,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         Set UI element connections
         """
         self.action_load.triggered.connect(self.select_bnd)
+        self.action_load_datams.triggered.connect(self.select_bnd_datams)
         self.action_save.triggered.connect(self.save_bnd_file)
         self.pb_open.clicked.connect(self.open_local_bnd)
         self.pb_back.clicked.connect(self.back_local_bnd)
@@ -371,6 +372,46 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if input_file:
             if input_file[0] != "":
                 self.load_bnd_file(input_file[0])
+
+    def select_bnd_datams(self):
+        """
+        Opens select bnd for DATAMS
+        """
+
+        # Ask for Datams file
+
+        datams_data = None
+        header_data = None
+
+        input_file = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open DATA_MS.BND file"
+        )
+        if input_file:
+            if input_file[0] != "":
+                datams_path = input_file[0]
+
+                # Read DATAMS
+                with open(datams_path, "r+b") as f:
+                    datams_data = f.read()
+
+        # Ask for Header
+        input_file = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open DATA_MS.HED file"
+        )
+        if input_file:
+            if input_file[0] != "":
+                header_path = input_file[0]
+
+                # Read header
+                with open(header_path, "r+b") as f:
+                    header_data = f.read()
+
+        if datams_data and header_data:
+            concat_data = header_data + datams_data
+
+            self.update_current_bnd(BND(data))
+            self.output_path = os.path.dirname(os.path.abspath(self.path))
+            self.file_name = os.path.basename(os.path.abspath(self.path))
 
     def dragEnterEvent(self, event):
         """

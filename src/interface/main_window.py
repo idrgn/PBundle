@@ -379,7 +379,10 @@ class Ui_MainWindow(object):
         self.check_external_header_file.setCheckable(True)
         self.check_external_header_file.setEnabled(False)
         self.check_external_header_file.setObjectName("check_external_header_file")
+        self.action_load_datams = QtWidgets.QAction(MainWindow)
+        self.action_load_datams.setObjectName("action_load_datams")
         self.menuFile.addAction(self.action_load)
+        self.menuFile.addAction(self.action_load_datams)
         self.menuFile.addAction(self.action_save)
         self.menuFile.addAction(self.action_save_as)
         self.menuFile.addAction(self.action_refresh)
@@ -434,7 +437,7 @@ class Ui_MainWindow(object):
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
         self.menuSettings.setTitle(_translate("MainWindow", "Settings"))
-        self.action_load.setText(_translate("MainWindow", "Load"))
+        self.action_load.setText(_translate("MainWindow", "Load BND"))
         self.action_load.setShortcut(_translate("MainWindow", "Ctrl+L"))
         self.action_save.setText(_translate("MainWindow", "Save"))
         self.action_save.setShortcut(_translate("MainWindow", "Ctrl+S"))
@@ -449,6 +452,7 @@ class Ui_MainWindow(object):
         self.check_extended_backup_files.setText(_translate("MainWindow", "Disable backups"))
         self.check_encryption_decryption.setText(_translate("MainWindow", "Encryption / decryption"))
         self.check_external_header_file.setText(_translate("MainWindow", "External header file"))
+        self.action_load_datams.setText(_translate("MainWindow", "Load DATAMS"))
 from interface.tree_widget_bundle import QTreeWidgetBundle
 
 

@@ -11,6 +11,7 @@ from data import (
     read_uint,
     replace_byte_array,
 )
+from helper import is_bnd, is_gzip
 
 
 class BND:
@@ -26,6 +27,7 @@ class BND:
         encrypted: bool = False,
         is_folder: bool = False,
         level: int = None,
+        is_datams: bool = False,
     ):
         self.file_list = []
 
@@ -37,6 +39,7 @@ class BND:
         # Needed stuff for packing
         self.name = name
         self.depth = depth
+        self.is_datams = is_datams
         self.encrypted = encrypted
         self.parent = None
         self.level = level
@@ -65,6 +68,7 @@ class BND:
         """
         Updates data
         """
+        # Clear
         self.file_list = []
         self.raw_data = data
         self.encrypted = encrypted
@@ -350,6 +354,12 @@ class BND:
         """
         return self.parent != None
 
+    def set_gzip(self, gzipped: bool):
+        """
+        Gzips, ungzips the file
+        """
+        self.is_gzipped = gzipped
+
     def read_from_file(self, data):
         """
         Reads data from a .BND file
@@ -359,22 +369,21 @@ class BND:
             data = p3hash(data, "d")
 
         # Checks if the header is a gzip header
-        if read_byte_array(data, 0x0, 0x3) == GZIP_HEADER:
+        if is_gzip(data):
 
             # Reassign data with the decrompressed file
             data = zlib.decompress(data, 15 + 32)
             self.is_gzipped = True
 
             # Check if the resulting file is a BND
-            if read_byte_array(data, 0x0, 0x4) != BND_HEADER:
-
-                # Add the simple BND header to the file
+            if not is_bnd(data):
                 self.data = data
-                data = BND_FILE_HEADER + data
+                # Add the simple BND header to the file
+                # data = BND_FILE_HEADER + data
                 self.is_single_file = True
 
-        # If header is BND
-        if not read_byte_array(data, 0x0, 0x4) == BND_HEADER:
+        # If header is not BND, it's a raw file (only bytes, can't be open)
+        if not is_bnd(data):
             self.is_raw = True
         else:
             # Check if it's a header file
@@ -428,8 +437,9 @@ class BND:
                     file_size = read_uint(crc_block, 0xC)  # Size of the data
 
                     # For DATAMS: File sizes are +0x20000000
-                    if file_size >= 0x20000000:
-                        file_size -= 0x20000000
+                    if self.is_datams:
+                        if file_size >= 0x20000000:
+                            file_size -= 0x20000000
 
                     # Level of the current file (inside folders)
                     file_level = read_char(data, pointer_attributes)
@@ -528,6 +538,10 @@ class BND:
         if not self.is_modified or self.is_raw:
             return self.raw_data
 
+        # Gzipped single file - in this case return unencrypted
+        if self.is_gzipped and self.is_single_file:
+            return self.raw_data
+
         # If single file
         if self.is_single_file:
             if self.is_gzipped and not ignore_gzip:
@@ -567,10 +581,14 @@ class BND:
         # == Generate a list with all the items inside the BND and their bytes
         formatted_list = []
 
-        # get data of all the contained items
+        # Get data of all the contained items
         file_list = self.get_depth_file_list()
         for item in file_list:
             file_bytes = item.to_bytes()
+
+            # Encrypt if the container file is DATAMS
+            if self.is_datams:
+                file_bytes = p3hash(file_bytes, "e")
 
             formatted_list.append(
                 {
@@ -589,7 +607,12 @@ class BND:
             file += pack("I", item["crc"])
             file += EMPTY_WORD  # info address
             file += EMPTY_WORD  # file data address
-            file += pack("I", item["size"])
+
+            # Add size, increase if the container is DATAMS
+            if self.is_datams:
+                file += pack("I", item["size"])
+            else:
+                file += pack("I", item["size"] + 0x20000000)
 
         # === SECTION: FILE INFO
         previous_entry_length = -1
