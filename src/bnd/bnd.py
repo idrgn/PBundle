@@ -46,7 +46,6 @@ class BND:
 
         # Gzipped or single BND
         self.is_gzipped = False
-        self.is_single_file = False
 
         # Is folder
         self.is_folder = is_folder
@@ -78,7 +77,6 @@ class BND:
 
         # Gzipped or single BND
         self.is_gzipped = False
-        self.is_single_file = False
 
         # Default values
         self.version = None
@@ -370,17 +368,15 @@ class BND:
 
         # Checks if the header is a gzip header
         if is_gzip(data):
-
             # Reassign data with the decrompressed file
             data = zlib.decompress(data, 15 + 32)
             self.is_gzipped = True
 
             # Check if the resulting file is a BND
+            # If it isn't a BND, it's a raw file, save unencrypted data
             if not is_bnd(data):
                 self.data = data
-                # Add the simple BND header to the file
-                # data = BND_FILE_HEADER + data
-                self.is_single_file = True
+                self.is_raw = True
 
         # If header is not BND, it's a raw file (only bytes, can't be open)
         if not is_bnd(data):
@@ -534,20 +530,17 @@ class BND:
         if self.is_folder:
             return b""
 
-        # If not modified or raw
-        if not self.is_modified or self.is_raw:
+        # If not modified, return raw data
+        if not self.is_modified:
+            return self.raw_data
+
+        # If raw data, return raw data
+        if self.is_raw:
             return self.raw_data
 
         # Gzipped single file - in this case return unencrypted
-        if self.is_gzipped and self.is_single_file:
-            return self.raw_data
-
-        # If single file
-        if self.is_single_file:
-            if self.is_gzipped and not ignore_gzip:
-                return gzip.compress(self.data)
-            else:
-                return self.data
+        # if self.is_gzipped and self.is_single_file:
+        #     return self.raw_data
 
         #  === SECTION: HEADER
         file_count = self.get_file_count()
@@ -610,9 +603,9 @@ class BND:
 
             # Add size, increase if the container is DATAMS
             if self.is_datams:
-                file += pack("I", item["size"])
-            else:
                 file += pack("I", item["size"] + 0x20000000)
+            else:
+                file += pack("I", item["size"])
 
         # === SECTION: FILE INFO
         previous_entry_length = -1

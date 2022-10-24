@@ -377,9 +377,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Opens select bnd for DATAMS
         """
-
         # Ask for Datams file
-
         datams_data = None
         header_data = None
 
@@ -408,8 +406,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         if datams_data and header_data:
             concat_data = header_data + datams_data
-
-            self.update_current_bnd(BND(data))
+            self.update_current_bnd(BND(concat_data))
             self.output_path = os.path.dirname(os.path.abspath(self.path))
             self.file_name = os.path.basename(os.path.abspath(self.path))
 
@@ -593,9 +590,6 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if item.bundle.is_folder:
             if not name.endswith("/"):
                 name += "/"
-        elif item.bundle.is_single_file:
-            if name != GZIPPED_FILE_NAME:
-                name = GZIPPED_FILE_NAME
 
         self.set_item_name(item, name)
 
