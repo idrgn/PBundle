@@ -450,8 +450,13 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Saves BND file
         """
+        # Save backup if enabled in settings
+        if not self.check_extended_backup_files.isChecked:
+            shutil.copy(self.path, f"{self.path}.bak")
+        
+        # Save file
         if self.path and self.bnd:
-            with open(self.path + ".out", "wb") as f:
+            with open(self.path, "wb") as f:
                 f.write(self.bnd.get_root_parent().to_bytes())
 
     def save_expanded_state(self):
