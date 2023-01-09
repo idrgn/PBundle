@@ -30,7 +30,7 @@ Python P3-Bundle/src/main.py
 
 ### Command line mode
 
-Quickreplace allows command line file replacement. Currently it only supports DATA_CMN.
+Quickreplace allows command line file replacement.
 
 Usage:
 
