@@ -17,6 +17,7 @@ PBundle is a .BND file editor, a format commonly used in the Patapon series
 ### Installing requirements
 
 [**Python**](https://www.python.org/downloads/) is required (tested on Python 3.11.0).
+
 Install the requirements by running the `pip install -r requirements.txt` command or by executing the `requirements.bat` file.
 
 ### Running PBundle
@@ -30,6 +31,7 @@ Python P3-Bundle/src/main.py
 ### Command line mode
 
 Quickreplace allows command line file replacement. Currently it only supports DATA_CMN.
+
 Usage:
 
 ```
