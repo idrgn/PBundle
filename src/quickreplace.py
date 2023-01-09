@@ -8,17 +8,17 @@ def quick_replace(bnd_file_path, source_file_path, destination):
     Quick BND replacement
     """
     print(
-        "Replacing file", destination, "inside", bnd_file_path, "with", source_file_path
+        f"Replacing file {destination} inside {bnd_file_path} with {source_file_path}"
     )
 
     # Check if replacement file exists
     if not exists(source_file_path):
-        print("Source file", source_file_path, "doesn't exist")
+        print(f"Source file {source_file_path} doesn't exist")
         return
 
     # Check if BND file exists
     if not exists(bnd_file_path):
-        print("BND file", bnd_file_path, "doesn't exist")
+        print(f"BND file {bnd_file_path} doesn't exist")
         return
 
     # Check if destination file is valid
