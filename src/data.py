@@ -11,17 +11,46 @@ def p3hash(data: bytes, mode: str):
     mode (str): "d" decrypt / "e" encrypt
     """
     with tempfile.NamedTemporaryFile(mode="w+b", suffix=".bin", delete=False) as tf:
-        temp = Path(tf.name)
+        data_length = len(data)
+
+        # Return data if the file is empty
+        if data_length == 0:
+            return data
+
+        # Add padding if the file is small
+        if mode == "d":
+            if data_length < 10000:
+                data += b"\x00" * (10000 - data_length)
+
+        # Get file paths
+        initial_file_path = Path(tf.name)
+        result_file_path = Path(f"{tf.name}.decrypted")
+
+        # Save file
         tf.write(data)
+
+        # Decrypt
         check_output(
-            f"{resource_path('res/ext/p3h.exe').as_posix()} {tf.name} {tf.name}1 {mode}",
+            f"{resource_path('res/ext/p3h.exe').as_posix()} {initial_file_path} {result_file_path} {mode}",
             shell=True,
         )
-        tmp_path = Path(f"{tf.name}1")
-        with open(tmp_path, "rb") as tf2:
+
+        # Read decrypted file
+        with open(result_file_path, "rb") as tf2:
+            print(f" - Old: {data_length}")
             data = tf2.read()
-        tmp_path.unlink()
-    temp.unlink()
+            if mode == "d":
+                if data_length < len(data):
+                    data = data[0:data_length]
+                    print(f" - Size adjusted")
+
+            print(f" - New: {len(data)}")
+
+        # Remove result file
+        result_file_path.unlink()
+
+    # Remove original file
+    initial_file_path.unlink()
     return data
 
 
