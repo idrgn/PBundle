@@ -10,7 +10,7 @@ import sip
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from bnd.bnd import BND
-from const import EMPTY_BND_FILE, GZIPPED_FILE_NAME
+from const import EMPTY_BND_FILE
 from data import *
 from interface import main_window
 from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
@@ -387,6 +387,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         if input_file:
             if input_file[0] != "":
                 datams_path = input_file[0]
+                self.path = datams_path
 
                 # Read DATAMS
                 with open(datams_path, "r+b") as f:
@@ -406,7 +407,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         if datams_data and header_data:
             concat_data = header_data + datams_data
-            self.update_current_bnd(BND(concat_data))
+            self.update_current_bnd(BND(concat_data, encrypted=True, is_datams=True))
             self.output_path = os.path.dirname(os.path.abspath(self.path))
             self.file_name = os.path.basename(os.path.abspath(self.path))
 

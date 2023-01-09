@@ -142,6 +142,21 @@ class BND:
         else:
             return self.parent.get_root_parent()
 
+    def get_parent_bnd(self):
+        """
+        Gets parent BND
+        """
+        # If no parent, return self
+        if self.parent is None:
+            return self
+        else:
+            # If it is a folder, get that folder's parent
+            if self.parent.is_folder:
+                return self.parent.get_parent_bnd()
+            # If it is a BND, return
+            else:
+                return self.parent
+
     def get_depth_file_list(self):
         """
         Gets file list with folders in same directory, in order
@@ -362,10 +377,6 @@ class BND:
         """
         Reads data from a .BND file
         """
-        # Decrypt if needed
-        if self.encrypted:
-            data = p3hash(data, "d")
-
         # Checks if the header is a gzip header
         if is_gzip(data):
             # Reassign data with the decrompressed file
@@ -421,15 +432,22 @@ class BND:
 
                 if crc_pointer != 0:
                     # Reads CRC block containing data
+                    # print(f"Current CRC pointer: {crc_pointer}")
                     crc_block = read_byte_array(data, crc_pointer, 0x10)
 
                     # Reading data from the CRC block
                     pointer_attributes = read_uint(
                         crc_block, 0x4
                     )  # Address to extra attributes
+
                     pointer_data = read_uint(
                         crc_block, 0x8
                     )  # Address to the start of the data
+
+                    # If is datams
+                    if self.get_parent_bnd().is_datams:
+                        pointer_data += 0x32800
+
                     file_size = read_uint(crc_block, 0xC)  # Size of the data
 
                     # For DATAMS: File sizes are +0x20000000
@@ -447,6 +465,12 @@ class BND:
                     file_data = read_byte_array(
                         data, pointer_data, file_size
                     )  # File data
+
+                    if self.is_datams:
+                        # Decrypt if needed
+                        if self.encrypted and not self.is_folder:
+                            # print(f"Decrypting {file_name}")
+                            file_data = p3hash(file_data, "d")
 
                     # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
                     # EXAMPLE:
@@ -472,7 +496,7 @@ class BND:
                                 None,
                                 file_name,
                                 processed_level,
-                                self.encrypted,
+                                False,
                                 True,
                                 level=file_level,
                             )
@@ -496,7 +520,7 @@ class BND:
                                 None,
                                 file_name,
                                 processed_level,
-                                self.encrypted,
+                                False,  # self.encrypted
                                 True,
                                 level=file_level,
                             )
@@ -514,7 +538,7 @@ class BND:
                                 file_data,
                                 file_name,
                                 current_object.depth,
-                                self.encrypted,
+                                self.get_parent_bnd().is_datams,  # self.encrypted
                                 level=file_level,
                             )
                         )
