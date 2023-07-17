@@ -6,6 +6,8 @@ from struct import unpack
 from subprocess import check_output
 
 import camellia
+import cffi
+import pep272_encryption
 
 
 def p3hash_camellia(data: bytes, encrypt: bool = False):
