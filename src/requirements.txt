@@ -1,7 +1,5 @@
-cffi==1.15.1
-pep272_encryption==0.4
+cryptography==41.0.2
 PyQt5==5.15.9
 PyQt5_sip==12.12.1
-python_camellia==1.0
 sip==6.7.9
 pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.zip 

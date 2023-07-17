@@ -5,20 +5,30 @@ from pathlib import Path
 from struct import unpack
 from subprocess import check_output
 
-import camellia
-import cffi
-import pep272_encryption
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
-def p3hash_camellia(data: bytes, encrypt: bool = False):
-    c = camellia.CamelliaCipher(
-        key=b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa", mode=camellia.MODE_ECB
+def camellia_ecb_encrypt(data: bytes):
+    cipher = Cipher(
+        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"),
+        modes.ECB(),
+        backend=default_backend(),
     )
+    encryptor = cipher.encryptor()
+    encrypted_data = encryptor.update(data) + encryptor.finalize()
+    return encrypted_data
 
-    if encrypt:
-        return c.encrypt(data)
-    else:
-        return c.decrypt(data)
+
+def camellia_ecb_decrypt(data: bytes):
+    cipher = Cipher(
+        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"),
+        modes.ECB(),
+        backend=default_backend(),
+    )
+    decryptor = cipher.decryptor()
+    decrypted_data = decryptor.update(data) + decryptor.finalize()
+    return decrypted_data
 
 
 def p3hash(data: bytes, mode: str):

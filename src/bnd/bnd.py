@@ -4,7 +4,8 @@ from struct import pack
 
 from const import BND_HEADER, EMPTY_BLOCK, EMPTY_WORD
 from data import (
-    p3hash_camellia,
+    camellia_ecb_decrypt,
+    camellia_ecb_encrypt,
     read_byte_array,
     read_char,
     read_str,
@@ -399,7 +400,7 @@ class BND:
         # Decrypt if DATAMS
         if self.is_datams:
             # Only decrypt file data
-            data = data[:file_data_start] + p3hash_camellia(data[file_data_start:])
+            data = data[:file_data_start] + camellia_ecb_decrypt(data[file_data_start:])
 
         # Check if it's a header file
         # Checks if file data exists
@@ -734,7 +735,7 @@ class BND:
 
         # Encrypt if file is DATAMS
         if self.is_datams:
-            file_contents = p3hash_camellia(file_contents, True)
+            file_contents = camellia_ecb_encrypt(file_contents)
 
         # Add append the array to file
         file += file_contents
