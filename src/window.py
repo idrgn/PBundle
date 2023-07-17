@@ -121,6 +121,8 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Adds a new folder to the current selected file
         """
+        if self.is_bns:
+            return
         self.add_to_selected_item(BND(name="new folder/", is_folder=True))
 
     def add_file(self):
