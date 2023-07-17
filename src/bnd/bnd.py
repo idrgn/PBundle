@@ -2,9 +2,9 @@ import gzip
 import zlib
 from struct import pack
 
-from const import BND_FILE_HEADER, BND_HEADER, EMPTY_BLOCK, EMPTY_WORD, GZIP_HEADER
+from const import BND_HEADER, EMPTY_BLOCK, EMPTY_WORD
 from data import (
-    p3hash,
+    p3hash_camellia,
     read_byte_array,
     read_char,
     read_str,
@@ -427,12 +427,15 @@ class BND:
             current_object = self
 
             for _ in range(entries):
-
                 crc_pointer = read_uint(data, info + offset + 0x3)
 
                 if crc_pointer != 0:
                     # Reads CRC block containing data
                     # print(f"Current CRC pointer: {crc_pointer}")
+                    if crc_pointer > len(data):
+                        self.is_raw = True
+                        return
+
                     crc_block = read_byte_array(data, crc_pointer, 0x10)
 
                     # Reading data from the CRC block
@@ -470,7 +473,7 @@ class BND:
                         # Decrypt if needed
                         if self.encrypted and not self.is_folder:
                             # print(f"Decrypting {file_name}")
-                            file_data = p3hash(file_data, "d")
+                            file_data = p3hash_camellia(file_data)
 
                     # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
                     # EXAMPLE:
@@ -488,7 +491,6 @@ class BND:
 
                     # If unequal or new folder, do action
                     if processed_level != current_level or is_change_a_folder:
-
                         # If level is higher than current one, subfolder must be created
                         if processed_level > current_level:
                             # If level is root, add to root
@@ -605,7 +607,7 @@ class BND:
 
             # Encrypt if the container file is DATAMS
             if self.is_datams:
-                file_bytes = p3hash(file_bytes, "e")
+                file_bytes = p3hash_camellia(file_bytes, True)
 
             formatted_list.append(
                 {
@@ -731,7 +733,7 @@ class BND:
 
         # Encrypt
         if self.encrypted:
-            file = p3hash(file, "e")
+            file = p3hash_camellia(file, True)
 
         # Return
         return file
