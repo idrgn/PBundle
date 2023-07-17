@@ -139,3 +139,8 @@ def sizeof_fmt(num, suffix: str = "B"):
             return "%3.1f %s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f %s%s" % (num, "Yi", suffix)
+
+
+def split_datams(data: bytes):
+    base = read_uint(data, 0x14)
+    return data[:base], data[base:]

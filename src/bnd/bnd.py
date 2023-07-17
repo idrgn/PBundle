@@ -392,161 +392,161 @@ class BND:
         # If header is not BND, it's a raw file (only bytes, can't be open)
         if not is_bnd(data):
             self.is_raw = True
-        else:
-            # Check if it's a header file
-            # Checks if file data exists
-            if read_uint(data, 0x14) >= len(data):
-                self.is_raw = True
-                return
+            return
 
-            # Read all the header values
-            self.version = read_uint(data, 0x04)
-            self.value1 = read_uint(data, 0x08)
-            self.value2 = read_uint(data, 0x0C)
-            info = read_uint(data, 0x10)
+        file_data_start = read_uint(data, 0x14)
 
-            # Checks all the empty blocks
-            empty_blocks = 0
+        # Decrypt if DATAMS
+        if self.is_datams:
+            # Only decrypt file data
+            data = data[:file_data_start] + p3hash_camellia(data[file_data_start:])
 
-            check = EMPTY_BLOCK
+        # Check if it's a header file
+        # Checks if file data exists
+        if file_data_start >= len(data):
+            self.is_raw = True
+            return
 
-            while check == EMPTY_BLOCK:
-                check = read_byte_array(data, 0x28 + empty_blocks * 0x10, 0x10)
-                if check == EMPTY_BLOCK:
-                    empty_blocks += 1
+        # Read all the header values
+        self.version = read_uint(data, 0x04)
+        self.value1 = read_uint(data, 0x08)
+        self.value2 = read_uint(data, 0x0C)
+        info = read_uint(data, 0x10)
 
-            entries = read_uint(data, 0x24) - empty_blocks
+        # Checks all the empty blocks
+        empty_blocks = 0
 
-            self.empty_blocks = empty_blocks
+        check = EMPTY_BLOCK
 
-            # Start reading the data
-            offset = 0x0
+        while check == EMPTY_BLOCK:
+            check = read_byte_array(data, 0x28 + empty_blocks * 0x10, 0x10)
+            if check == EMPTY_BLOCK:
+                empty_blocks += 1
 
-            # Files
-            current_level = 0
-            current_object = self
+        entries = read_uint(data, 0x24) - empty_blocks
 
-            for _ in range(entries):
-                crc_pointer = read_uint(data, info + offset + 0x3)
+        self.empty_blocks = empty_blocks
 
-                if crc_pointer != 0:
-                    # Reads CRC block containing data
-                    # print(f"Current CRC pointer: {crc_pointer}")
-                    if crc_pointer > len(data):
-                        self.is_raw = True
-                        return
+        # Start reading the data
+        offset = 0x0
 
-                    crc_block = read_byte_array(data, crc_pointer, 0x10)
+        # Files
+        current_level = 0
+        current_object = self
 
-                    # Reading data from the CRC block
-                    pointer_attributes = read_uint(
-                        crc_block, 0x4
-                    )  # Address to extra attributes
+        for _ in range(entries):
+            crc_pointer = read_uint(data, info + offset + 0x3)
 
-                    pointer_data = read_uint(
-                        crc_block, 0x8
-                    )  # Address to the start of the data
+            if crc_pointer != 0:
+                # Reads CRC block containing data
+                # print(f"Current CRC pointer: {crc_pointer}")
+                if crc_pointer > len(data):
+                    self.is_raw = True
+                    return
 
-                    # If is datams
-                    if self.get_parent_bnd().is_datams:
-                        pointer_data += 0x32800
+                crc_block = read_byte_array(data, crc_pointer, 0x10)
 
-                    file_size = read_uint(crc_block, 0xC)  # Size of the data
+                # Reading data from the CRC block
+                pointer_attributes = read_uint(
+                    crc_block, 0x4
+                )  # Address to extra attributes
 
-                    # For DATAMS: File sizes are +0x20000000
-                    if self.is_datams:
-                        if file_size >= 0x20000000:
-                            file_size -= 0x20000000
+                pointer_data = read_uint(
+                    crc_block, 0x8
+                )  # Address to the start of the data
 
-                    # Level of the current file (inside folders)
-                    file_level = read_char(data, pointer_attributes)
+                # If is datams
+                if self.get_parent_bnd().is_datams:
+                    pointer_data += file_data_start
 
-                    # Filename
-                    file_name = read_str(data, pointer_attributes + 0x7)
+                file_size = read_uint(crc_block, 0xC)  # Size of the data
 
-                    # Read file data
-                    file_data = read_byte_array(
-                        data, pointer_data, file_size
-                    )  # File data
+                # For DATAMS: File sizes are +0x20000000
+                if self.is_datams:
+                    if file_size >= 0x20000000:
+                        file_size -= 0x20000000
 
-                    if self.is_datams:
-                        # Decrypt if needed
-                        if self.encrypted and not self.is_folder:
-                            # print(f"Decrypting {file_name}")
-                            file_data = p3hash_camellia(file_data)
+                # Level of the current file (inside folders)
+                file_level = read_char(data, pointer_attributes)
 
-                    # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
-                    # EXAMPLE:
-                    # - A file in the root directory will be level -1
-                    # - A file in 2 folders will be -3
+                # Filename
+                file_name = read_str(data, pointer_attributes + 0x7)
 
-                    is_change_a_folder = False
-                    processed_level = current_level
+                # Read file data
+                file_data = read_byte_array(data, pointer_data, file_size)  # File data
 
-                    if file_level < 0:
-                        processed_level = abs(file_level) - 1
-                    else:
-                        processed_level = file_level
-                        is_change_a_folder = True
+                # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
+                # EXAMPLE:
+                # - A file in the root directory will be level -1
+                # - A file in 2 folders will be -3
 
-                    # If unequal or new folder, do action
-                    if processed_level != current_level or is_change_a_folder:
-                        # If level is higher than current one, subfolder must be created
-                        if processed_level > current_level:
-                            # If level is root, add to root
-                            new_folder = BND(
-                                None,
-                                file_name,
-                                processed_level,
-                                False,
-                                True,
-                                level=file_level,
-                            )
-                            current_object.add_to_file_list(new_folder)
-                            current_object = new_folder
+                is_change_a_folder = False
+                processed_level = current_level
 
-                        # If level is lower than current one, subfolder must be exited
-                        elif processed_level < current_level:
-                            # Execute difference amount of times in case there is a jump
-                            difference = current_level - processed_level
-                            for _ in range(difference):
-                                # Get parent
-                                current_object = current_object.get_parent()
+                if file_level < 0:
+                    processed_level = abs(file_level) - 1
+                else:
+                    processed_level = file_level
+                    is_change_a_folder = True
 
-                        # If change is a folder, and it is in the same level as the old one
-                        if is_change_a_folder and processed_level <= current_level:
-                            # Back to parent
-                            current_object = current_object.get_parent()
-                            # Create new folder
-                            new_folder = BND(
-                                None,
-                                file_name,
-                                processed_level,
-                                False,  # self.encrypted
-                                True,
-                                level=file_level,
-                            )
-                            # Set to current object
-                            current_object.add_to_file_list(new_folder)
-                            current_object = new_folder
-
-                        # Set current level
-                        current_level = processed_level
-
-                    # Add file
-                    if file_level < 0:
-                        current_object.add_to_file_list(
-                            BND(
-                                file_data,
-                                file_name,
-                                current_object.depth,
-                                self.get_parent_bnd().is_datams,  # self.encrypted
-                                level=file_level,
-                            )
+                # If unequal or new folder, do action
+                if processed_level != current_level or is_change_a_folder:
+                    # If level is higher than current one, subfolder must be created
+                    if processed_level > current_level:
+                        # If level is root, add to root
+                        new_folder = BND(
+                            None,
+                            file_name,
+                            processed_level,
+                            False,
+                            True,
+                            level=file_level,
                         )
+                        current_object.add_to_file_list(new_folder)
+                        current_object = new_folder
 
-                    # Add offset
-                    offset += 7 + len(file_name) + 1
+                    # If level is lower than current one, subfolder must be exited
+                    elif processed_level < current_level:
+                        # Execute difference amount of times in case there is a jump
+                        difference = current_level - processed_level
+                        for _ in range(difference):
+                            # Get parent
+                            current_object = current_object.get_parent()
+
+                    # If change is a folder, and it is in the same level as the old one
+                    if is_change_a_folder and processed_level <= current_level:
+                        # Back to parent
+                        current_object = current_object.get_parent()
+                        # Create new folder
+                        new_folder = BND(
+                            None,
+                            file_name,
+                            processed_level,
+                            False,  # self.encrypted
+                            True,
+                            level=file_level,
+                        )
+                        # Set to current object
+                        current_object.add_to_file_list(new_folder)
+                        current_object = new_folder
+
+                    # Set current level
+                    current_level = processed_level
+
+                # Add file
+                if file_level < 0:
+                    current_object.add_to_file_list(
+                        BND(
+                            file_data,
+                            file_name,
+                            current_object.depth,
+                            self.get_parent_bnd().is_datams,  # self.encrypted
+                            level=file_level,
+                        )
+                    )
+
+                # Add offset
+                offset += 7 + len(file_name) + 1
 
     def to_bytes(self, ignore_gzip: bool = False):
         """
@@ -604,10 +604,6 @@ class BND:
         file_list = self.get_depth_file_list()
         for item in file_list:
             file_bytes = item.to_bytes()
-
-            # Encrypt if the container file is DATAMS
-            if self.is_datams:
-                file_bytes = p3hash_camellia(file_bytes, True)
 
             formatted_list.append(
                 {
@@ -703,37 +699,44 @@ class BND:
         # Not sure if this spacing is needed (present in DATACMN)
         # file + b"\x00" + 0x600
         base = len(file)
-        file = replace_byte_array(file, 0x14, pack("I", len(file)))
+        file = replace_byte_array(file, 0x14, pack("I", base))
 
         # Add addresses to CRC block
         for i in range(len(data_address_list)):
             file = replace_byte_array(
                 file,
                 data_address_list[i]["crc_block_address"] + 0x8,
-                pack("I", base + data_address_list[i]["data_address"]),
+                pack(
+                    "I",
+                    (0x0 if self.is_datams else base)
+                    + data_address_list[i]["data_address"],
+                ),
             )
 
-        # Write the file data
-        file = bytearray(file)
+        # Create array for file contents
+        file_contents = bytearray()
 
         # Iterate over all addresses
         for i in range(len(data_address_list)):
             # Also grabbing files from data by index
-            file += data_address_list[i]["bytes"]
+            file_contents += data_address_list[i]["bytes"]
             # Make it so next file always start on 0x4 multiple
-            while len(file) % 4 != 0:
-                file += b"\x00"
+            while len(file_contents) % 4 != 0:
+                file_contents += b"\x00"
 
-        # Convert back to bytes
-        file = bytes(file)
+        # Convert to bytes
+        file_contents = bytes(file_contents)
+
+        # Encrypt if file is DATAMS
+        if self.is_datams:
+            file_contents = p3hash_camellia(file_contents, True)
+
+        # Add append the array to file
+        file += file_contents
 
         # Gzip
         if self.is_gzipped and not ignore_gzip:
             file = gzip.compress(file)
-
-        # Encrypt
-        if self.encrypted:
-            file = p3hash_camellia(file, True)
 
         # Return
         return file

@@ -410,6 +410,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
             self.update_current_bnd(BND(concat_data, encrypted=True, is_datams=True))
             self.output_path = os.path.dirname(os.path.abspath(self.path))
             self.file_name = os.path.basename(os.path.abspath(self.path))
+            self.datams_path = {"BND": datams_path, "HED": header_path}
 
     def dragEnterEvent(self, event):
         """
@@ -450,14 +451,38 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Saves BND file
         """
-        # Save backup if enabled in settings
-        if not self.check_extended_backup_files.isChecked:
-            shutil.copy(self.path, f"{self.path}.bak")
-        
+
         # Save file
-        if self.path and self.bnd:
-            with open(self.path, "wb") as f:
-                f.write(self.bnd.get_root_parent().to_bytes())
+        if not self.bnd:
+            return
+
+        # Get file bytes
+        file_bytes = self.bnd.get_root_parent().to_bytes()
+
+        # If DATMS, file needs to be split
+        if self.bnd.get_root_parent().is_datams:
+            if self.datams_path:
+                if not self.check_extended_backup_files.isChecked:
+                    shutil.copy(
+                        self.datams_path["HED"], f"{self.datams_path['HED']}.bak"
+                    )
+                if not self.check_extended_backup_files.isChecked:
+                    shutil.copy(
+                        self.datams_path["BND"], f"{self.datams_path['BND']}.bak"
+                    )
+
+                hed, bnd = split_datams(file_bytes)
+                with open(f"{self.datams_path['HED']}.test", "wb") as f:
+                    f.write(hed)
+                with open(f"{self.datams_path['BND']}.test", "wb") as f:
+                    f.write(bnd)
+        else:
+            if self.path:
+                if not self.check_extended_backup_files.isChecked:
+                    shutil.copy(self.path, f"{self.path}.bak")
+
+                with open(self.path, "wb") as f:
+                    f.write(file_bytes)
 
     def save_expanded_state(self):
         """
