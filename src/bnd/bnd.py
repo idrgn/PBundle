@@ -2,7 +2,7 @@ import gzip
 import zlib
 from struct import pack
 
-from const import BND_HEADER, EMPTY_BLOCK, EMPTY_WORD
+from const import BND_HEADER, BNS_FILE_NAME, EMPTY_BLOCK, EMPTY_WORD
 from data import (
     camellia_ecb_decrypt,
     camellia_ecb_encrypt,
@@ -29,6 +29,7 @@ class BND:
         is_folder: bool = False,
         level: int = None,
         is_datams: bool = False,
+        is_bns: bool = False,
     ):
         self.file_list = []
 
@@ -41,6 +42,7 @@ class BND:
         self.name = name
         self.depth = depth
         self.is_datams = is_datams
+        self.is_bns = is_bns
         self.encrypted = encrypted
         self.parent = None
         self.level = level
@@ -414,6 +416,12 @@ class BND:
         self.value2 = read_uint(data, 0x0C)
         info = read_uint(data, 0x10)
 
+        # BNS
+        if self.version == 0x0:
+            self.is_bns = True
+            self.load_as_bns(data)
+            return
+
         # Checks all the empty blocks
         empty_blocks = 0
 
@@ -549,10 +557,32 @@ class BND:
                 # Add offset
                 offset += 7 + len(file_name) + 1
 
+    def load_as_bns(self, data):
+        """
+        Load BNS file contents
+        """
+        entries = read_uint(data, 0x24)
+
+        for i in range(entries):
+            entry_address = read_uint(data, 0x30 + i * 0x10)
+            entry_size = read_uint(data, 0x34 + i * 0x10)
+            entry_data = read_byte_array(data, entry_address, entry_size)
+            self.empty_blocks = 0
+            self.add_to_file_list(
+                BND(
+                    entry_data,
+                    BNS_FILE_NAME % str(i),
+                )
+            )
+
     def to_bytes(self, ignore_gzip: bool = False):
         """
         Generates bytes from file data
         """
+        # If BNS, process file differently
+        if self.is_bns:
+            return self.to_bytes_bns()
+
         # If folder return empty
         if self.is_folder:
             return b""
@@ -739,6 +769,82 @@ class BND:
 
         # Add append the array to file
         file += file_contents
+
+        # Gzip
+        if self.is_gzipped and not ignore_gzip:
+            file = gzip.compress(file)
+
+        # Return
+        return file
+
+    def to_bytes_bns(self, ignore_gzip: bool = False):
+        """
+        Generates bytes for BNS file
+        """
+        #  === SECTION: HEADER
+        file_count = self.get_file_count()
+        file = BND_HEADER  # 0x0
+
+        # Header values
+        file += pack("III", self.version, self.value1, self.value2)  # 0x4 - 0xC
+
+        # Pointers:
+        # - 0x00000000
+        # - Address where files start, will be added later
+        # - 0x00000000
+        # - 0x00000000
+        # This should actually be *4 but for some reason it adds one extra?
+        file += EMPTY_WORD * 4
+
+        # Files:
+        # - Amount of files with value less than zero
+        # - Amount of files + empty blocks
+        # - 0x00000000 * 0x2
+        # In this case since there's no folders both values are the same
+        file += pack("II", self.get_bnd_count(), file_count + self.empty_blocks)
+        file += EMPTY_WORD * 2
+
+        # Base address is easier to calculate
+        file_list = self.get_depth_file_list()
+        file_data_start = 0x30 + len(file_list * 0x10)
+        file = replace_byte_array(file, 0x14, pack("I", file_data_start))
+
+        # Use byte array for faster concatenation
+        file_raw_data = bytearray()
+        current_pointer = 0x0
+
+        # File entry data:
+        # - 0x0: File address
+        # - 0x4: File size
+        # - 0x8: None
+        # - 0xC: None
+        # Since BNS doesn't have any filenames, there's no CRC / pointer to extra data
+        for item in file_list:
+            # Process the item
+            file_bytes = item.to_bytes()
+
+            # Concatenate to array of all file data
+            file_raw_data += file_bytes
+            # Make sure it's a multiple of 0x10
+            # Not sure if needed but the game does it
+            while len(file_raw_data) % 0x10 != 0:
+                file_raw_data += b"\x00"
+
+            # Write file entry data
+            file += pack(
+                "IIII",
+                file_data_start + current_pointer,
+                len(file_bytes),
+                0x0,
+                0x0,
+            )
+
+            # Update current pointer
+            current_pointer = len(file_raw_data)
+
+        # Append to file
+        file_raw_data = bytes(file_raw_data)
+        file += file_raw_data
 
         # Gzip
         if self.is_gzipped and not ignore_gzip:

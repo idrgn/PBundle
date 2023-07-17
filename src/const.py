@@ -11,3 +11,4 @@ bnd_empty_file = open(resource_path("res/bnd_empty.bin"), "r+b")
 EMPTY_BND_FILE = bnd_empty_file.read()
 bnd_empty_file.close()
 GZIPPED_FILE_NAME = "[[ GZIPPED FILE ]]"
+BNS_FILE_NAME = "[[ %s ]]"
