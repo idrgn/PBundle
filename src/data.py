@@ -5,15 +5,12 @@ from pathlib import Path
 from struct import unpack
 from subprocess import check_output
 
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
 def camellia_ecb_encrypt(data: bytes):
     cipher = Cipher(
-        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"),
-        modes.ECB(),
-        backend=default_backend(),
+        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"), modes.ECB()
     )
     encryptor = cipher.encryptor()
     encrypted_data = encryptor.update(data) + encryptor.finalize()
@@ -22,9 +19,7 @@ def camellia_ecb_encrypt(data: bytes):
 
 def camellia_ecb_decrypt(data: bytes):
     cipher = Cipher(
-        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"),
-        modes.ECB(),
-        backend=default_backend(),
+        algorithms.Camellia(b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa"), modes.ECB()
     )
     decryptor = cipher.decryptor()
     decrypted_data = decryptor.update(data) + decryptor.finalize()
