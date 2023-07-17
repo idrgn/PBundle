@@ -5,6 +5,19 @@ from pathlib import Path
 from struct import unpack
 from subprocess import check_output
 
+import camellia
+
+
+def p3hash_camellia(data: bytes, encrypt: bool = False):
+    c = camellia.CamelliaCipher(
+        key=b"SVsyE56pniSRS9dIPTiE8ApDaUnN0AEa", mode=camellia.MODE_ECB
+    )
+
+    if encrypt:
+        return c.encrypt(data)
+    else:
+        return c.decrypt(data)
+
 
 def p3hash(data: bytes, mode: str):
     """
