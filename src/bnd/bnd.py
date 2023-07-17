@@ -724,6 +724,11 @@ class BND:
             while len(file_contents) % 4 != 0:
                 file_contents += b"\x00"
 
+        # Must be a multiple of 0x10 for camellia
+        if self.is_datams:
+            while len(file_contents) % 0x10 != 0:
+                file_contents += b"\x00"
+
         # Convert to bytes
         file_contents = bytes(file_contents)
 
