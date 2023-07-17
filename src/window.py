@@ -472,9 +472,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                     )
 
                 hed, bnd = split_datams(file_bytes)
-                with open(f"{self.datams_path['HED']}.test", "wb") as f:
+                with open(self.datams_path["HED"], "wb") as f:
                     f.write(hed)
-                with open(f"{self.datams_path['BND']}.test", "wb") as f:
+                with open(self.datams_path["BND"], "wb") as f:
                     f.write(bnd)
         else:
             if self.path:
