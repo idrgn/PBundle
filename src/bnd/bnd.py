@@ -579,10 +579,6 @@ class BND:
         """
         Generates bytes from file data
         """
-        # If BNS, process file differently
-        if self.is_bns:
-            return self.to_bytes_bns()
-
         # If folder return empty
         if self.is_folder:
             return b""
@@ -598,6 +594,10 @@ class BND:
         # Gzipped single file - in this case return unencrypted
         # if self.is_gzipped and self.is_single_file:
         #     return self.raw_data
+
+        # If BNS, process file differently
+        if self.is_bns:
+            return self.to_bytes_bns()
 
         #  === SECTION: HEADER
         file_count = self.get_file_count()
