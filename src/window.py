@@ -442,7 +442,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Read BND file
         """
-        with open(file, "r+b") as f:
+        with open(file, "rb") as f:
             data = f.read()
             self.path = file
             self.update_current_bnd(BND(data))
