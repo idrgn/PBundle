@@ -466,11 +466,11 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         # If DATMS, file needs to be split
         if self.bnd.get_root_parent().is_datams:
             if self.datams_path:
-                if not self.check_extended_backup_files.isChecked:
+                if not self.check_disable_backup.isChecked():
                     shutil.copy(
                         self.datams_path["HED"], f"{self.datams_path['HED']}.bak"
                     )
-                if not self.check_extended_backup_files.isChecked:
+                if not self.check_disable_backup.isChecked():
                     shutil.copy(
                         self.datams_path["BND"], f"{self.datams_path['BND']}.bak"
                     )
@@ -482,7 +482,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
                     f.write(bnd)
         else:
             if self.path:
-                if not self.check_extended_backup_files.isChecked:
+                if not self.check_disable_backup.isChecked():
                     shutil.copy(self.path, f"{self.path}.bak")
 
                 with open(self.path, "wb") as f:

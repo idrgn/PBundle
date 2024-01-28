@@ -880,7 +880,7 @@ p, li { white-space: pre-wrap; }
      <string>Settings</string>
     </property>
     <addaction name="check_reload_on_save"/>
-    <addaction name="check_extended_backup_files"/>
+    <addaction name="check_disable_backup"/>
     <addaction name="check_encryption_decryption"/>
     <addaction name="check_external_header_file"/>
    </widget>
@@ -956,7 +956,7 @@ p, li { white-space: pre-wrap; }
     <string>Reload on save</string>
    </property>
   </action>
-  <action name="check_extended_backup_files">
+  <action name="check_disable_backup">
    <property name="checkable">
     <bool>true</bool>
    </property>
