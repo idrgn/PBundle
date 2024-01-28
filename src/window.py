@@ -5,15 +5,15 @@ import sys
 import tempfile
 import threading
 import time
+from pathlib import Path
 
 import sip
-from PyQt5 import QtCore, QtGui, QtWidgets
-
 from bnd.bnd import BND
 from const import EMPTY_BND_FILE
-from data import *
+from data import resource_path, sizeof_fmt, split_datams
 from interface import main_window
 from interface.tree_widget_item_bundle import QTreeWidgetItemBundle
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
@@ -121,7 +121,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Adds a new folder to the current selected file
         """
-        if self.is_bns:
+        if self.bnd.is_bns:
             return
         self.add_to_selected_item(BND(name="new folder/", is_folder=True))
 
@@ -344,7 +344,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         self.le_crc.setText("CRC")
         self.le_crc.setToolTip("None")
         self.le_size.setText("Size")
-        self.le_size.setToolTip(f"None")
+        self.le_size.setToolTip("None")
 
     def get_selected_item(self):
         """
@@ -370,7 +370,9 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         """
         Opens select bnd
         """
-        input_file = QtWidgets.QFileDialog.getOpenFileName(self, "Open")
+        input_file = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open", filter="BND (*.bnd)"
+        )
         if input_file:
             if input_file[0] != "":
                 self.load_bnd_file(input_file[0])
@@ -384,7 +386,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
         header_data = None
 
         input_file = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open DATA_MS.BND file"
+            self, "Open DATAMS.BND file", filter="DATAMS.BND (*.bnd)"
         )
         if input_file:
             if input_file[0] != "":
@@ -397,7 +399,7 @@ class Application(QtWidgets.QMainWindow, main_window.Ui_MainWindow):
 
         # Ask for Header
         input_file = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open DATA_MS.HED file"
+            self, "Open DATAMS.HED file", filter="DATAMS.HED (*.hed)"
         )
         if input_file:
             if input_file[0] != "":

@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import os
 import sys
 import tempfile
@@ -24,6 +26,14 @@ def camellia_ecb_decrypt(data: bytes):
     decryptor = cipher.decryptor()
     decrypted_data = decryptor.update(data) + decryptor.finalize()
     return decrypted_data
+
+
+def sha1hmac(data: bytes):
+    # key provided by Nemoumbra :)
+    hmac_sha1 = hmac.new(
+        "CyZ2o3SPBqMWVVvUVt4WwJOBpq9hCjNq".encode("utf-8"), data, hashlib.sha1
+    ).hexdigest()
+    return hmac_sha1
 
 
 def p3hash(data: bytes, mode: str):
@@ -62,7 +72,7 @@ def p3hash(data: bytes, mode: str):
             if mode == "d":
                 if data_length < len(data):
                     data = data[0:data_length]
-                    print(f" - Size adjusted")
+                    print(" - Size adjusted")
 
             print(f" - New: {len(data)}")
 

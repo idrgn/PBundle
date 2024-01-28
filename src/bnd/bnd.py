@@ -1,6 +1,6 @@
 import gzip
 import zlib
-from struct import pack
+from struct import pack, unpack
 
 from const import BND_HEADER, BNS_FILE_NAME, EMPTY_BLOCK, EMPTY_WORD
 from data import (
@@ -11,6 +11,7 @@ from data import (
     read_str,
     read_uint,
     replace_byte_array,
+    sha1hmac,
 )
 from helper import is_bnd, is_gzip
 
@@ -368,7 +369,7 @@ class BND:
         """
         Returns true if object has parent
         """
-        return self.parent != None
+        return self.parent is not None
 
     def set_gzip(self, gzipped: bool):
         """
@@ -483,6 +484,16 @@ class BND:
 
                 # Read file data
                 file_data = read_byte_array(data, pointer_data, file_size)  # File data
+
+                if self.is_datams and len(file_data) > 0x0:
+                    if len(file_data) % 0x10 == 0:
+                        file_data = file_data.rstrip(
+                            b"\x10"
+                        )  # remove the camellia padding
+                    file_data = file_data[:-0x14]  # remove the sha1hmac hash
+                    real_file_size = unpack("I", file_data[-0x4:])[0]
+                    file_data = file_data[:-0x0C]  # remove the file size and padding
+                    file_data = file_data[:real_file_size]  # remove padding
 
                 # FILE LEVEL IS ALWAYS FOLDER LEVEL IN NEGATIVE MINUS ONE
                 # EXAMPLE:
@@ -635,6 +646,16 @@ class BND:
         file_list = self.get_depth_file_list()
         for item in file_list:
             file_bytes = item.to_bytes()
+            if self.is_datams:
+                file_hash = sha1hmac(file_bytes)
+                real_file_size = len(file_bytes)
+                while len(file_bytes) % 0x10 != 0:
+                    file_bytes += b"\x00"
+                file_bytes += b"\x00" * 0x8  # padding before size
+                file_bytes += pack("I", real_file_size)
+                file_bytes += bytes.fromhex(file_hash.upper())
+                while len(file_bytes) % 0x10 != 0:
+                    file_bytes += b"\x00"
 
             formatted_list.append(
                 {
